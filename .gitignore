@@ -1,0 +1,11 @@
+/.eggs
+/.tox
+/build
+/dist
+/venv
+*.egg-info
+*.py[cdo]
+requirements-local.*
+.coverage
+/*cache
+*,cover
