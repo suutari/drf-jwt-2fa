@@ -14,8 +14,6 @@ str = six.text_type  # Make str be unicode on Python 2 too
 
 def check_auth_token(token, username='testuser', email='testuser@localhost'):
     payload = check_token_basics_and_get_payload(token)
-    print(payload)
-    print(sorted(payload.keys()))
     assert sorted(payload.keys()) == ['email', 'exp', 'user_id', 'username']
     assert isinstance(payload['user_id'], int)
     assert isinstance(payload['username'], str)
