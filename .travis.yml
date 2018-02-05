@@ -6,12 +6,12 @@ cache: pip
 
 matrix:
   include:
-    - {env: TOXENV=style, python: "3.5"}
-    - {env: TOXENV=packaging, python: "3.5"}
     - python: "3.6"
     - python: "3.5"
     - python: "3.4"
     - python: "2.7"
+    - {env: TOXENV=style, python: "3.5"}
+    - {env: TOXENV=packaging, python: "3.5"}
 
 install:
   - pip install codecov tox-travis
