@@ -7,6 +7,20 @@ DRF authentication library called `REST framework JWT Auth <drf-jwt_>`_.
 
 .. _drf-jwt: https://github.com/GetBlimp/django-rest-framework-jwt
 
+|PyPI| |Test Status| |Coverage|
+
+.. |PyPI| image::
+   https://img.shields.io/pypi/v/drf-jwt-2fa.svg
+   :target: https://pypi.python.org/pypi/drf-jwt-2fa/
+
+.. |Test Status| image::
+   https://img.shields.io/travis/suutari/drf-jwt-2fa.svg
+   :target: https://travis-ci.org/suutari/drf-jwt-2fa
+
+.. |Coverage| image::
+   https://img.shields.io/codecov/c/github/suutari/drf-jwt-2fa.svg
+   :target: https://codecov.io/gh/suutari/drf-jwt-2fa
+
 Overview
 --------
 
