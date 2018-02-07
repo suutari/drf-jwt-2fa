@@ -2,18 +2,15 @@ import datetime
 import time
 
 import pytest
-from django.conf import settings
 from django.core import mail
-from django.test import override_settings
 from mock import patch
 from rest_framework import serializers
 
-from drf_jwt_2fa.settings import api_settings
 from drf_jwt_2fa.token_manager import CodeTokenManager
 
 from .factories import get_user
 from .utils import (
-    check_code_token, decode_jwt_part, encode_jwt_part,
+    OverrideJwt2faSettings, check_code_token, decode_jwt_part, encode_jwt_part,
     get_verification_code_from_mailbox)
 
 
@@ -92,29 +89,22 @@ def test_check_code_token_and_code_with_invalid_code():
     manager = CodeTokenManager()
     token = manager.create_code_token(get_user())
     correct_code = get_verification_code_from_mailbox()
-    assert len(correct_code) == 6
-    invalid_code = '123456' if correct_code != '123456' else '654321'
+    assert len(correct_code) == 7
+    invalid_code = '1234567' if correct_code != '1234567' else '7654321'
     with pytest.raises(serializers.ValidationError) as exc_info:
         manager.check_code_token_and_code(token, invalid_code)
     assert str(exc_info.value) == repr([u'Verification failed'])
 
 
 @pytest.mark.django_db
-@override_settings(JWT2FA_AUTH={
+@OverrideJwt2faSettings({
     'CODE_EXPIRATION_TIME': datetime.timedelta(seconds=-1),
 })
 def test_check_code_token_and_code_with_expired_token():
-    old_user_settings = api_settings._user_settings
-    api_settings.reload()
-    api_settings._user_settings = settings.JWT2FA_AUTH
-    try:
-        manager = CodeTokenManager()
-        token = manager.create_code_token(get_user())
-        assert decode_jwt_part(token.split('.')[1])['exp'] < time.time()
-        code = get_verification_code_from_mailbox()
-        with pytest.raises(serializers.ValidationError) as exc_info:
-            manager.check_code_token_and_code(token, code)
-        assert str(exc_info.value) == repr([u'Signature has expired.'])
-    finally:
-        api_settings.reload()
-        api_settings._user_settings = old_user_settings
+    manager = CodeTokenManager()
+    token = manager.create_code_token(get_user())
+    assert decode_jwt_part(token.split('.')[1])['exp'] < time.time()
+    code = get_verification_code_from_mailbox()
+    with pytest.raises(serializers.ValidationError) as exc_info:
+        manager.check_code_token_and_code(token, code)
+    assert str(exc_info.value) == repr([u'Signature has expired.'])

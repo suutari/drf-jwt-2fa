@@ -2,11 +2,12 @@ import pytest
 from django.contrib.auth.backends import ModelBackend
 from django.test import override_settings
 from django.urls import reverse
-from rest_framework.test import APIClient
+from rest_framework import status
 
 from .factories import get_user
 from .utils import (
-    check_auth_token, check_code_token, get_verification_code_from_mailbox)
+    check_auth_token, check_code_token, get_api_client,
+    get_verification_code_from_mailbox)
 
 
 @pytest.mark.django_db
@@ -22,7 +23,7 @@ def get_code_token():
         reverse('get-code'),
         data={'username': 'testuser', 'password': 'a42'})
     assert sorted(result.data.keys()) == ['token']
-    assert result.status_code == 200
+    assert result.status_code == status.HTTP_200_OK
     return result.data['token']
 
 
@@ -31,7 +32,7 @@ def test_code_token_missing_fields():
     # Post without username field
     result = client.post(reverse('get-code'), data={'password': 'abc'})
     assert sorted(result.data.keys()) == ['username']
-    assert result.status_code == 400
+    assert result.status_code == status.HTTP_400_BAD_REQUEST
     assert result.data['username'] == ['This field is required.']
 
 
@@ -43,7 +44,7 @@ def test_code_token_invalid_password():
         reverse('get-code'),
         data={'username': 'testuser', 'password': 'wrong'})
     assert sorted(result.data.keys()) == ['non_field_errors']
-    assert result.status_code == 400
+    assert result.status_code == status.HTTP_400_BAD_REQUEST
     assert result.data['non_field_errors'] == ['Invalid credentials']
 
 
@@ -64,7 +65,7 @@ def test_code_token_inactive_user():
         reverse('get-code'),
         data={'username': 'testuser', 'password': 'a42'})
     assert sorted(result.data.keys()) == ['non_field_errors']
-    assert result.status_code == 400
+    assert result.status_code == status.HTTP_400_BAD_REQUEST
     assert result.data['non_field_errors'] == ['Deactivated user']
 
 
@@ -77,7 +78,7 @@ def test_auth_token_success():
         reverse('auth'),
         data={'code_token': code_token, 'code': code})
     assert sorted(result.data.keys()) == ['token']
-    assert result.status_code == 200
+    assert result.status_code == status.HTTP_200_OK
     token = result.data['token']
     check_auth_token(token)
 
@@ -86,13 +87,13 @@ def test_auth_token_success():
 def test_auth_token_invalid_code():
     code_token = get_code_token()
     correct_code = get_verification_code_from_mailbox()
-    code = '123456' if correct_code != '123456' else '654321'
+    code = '1234567' if correct_code != '1234567' else '7654321'
     client = get_api_client()
     result = client.post(
         reverse('auth'),
         data={'code_token': code_token, 'code': code})
     assert sorted(result.data.keys()) == ['non_field_errors']
-    assert result.status_code == 400
+    assert result.status_code == status.HTTP_400_BAD_REQUEST
     assert result.data['non_field_errors'] == ['Verification failed']
 
 
@@ -107,11 +108,5 @@ def test_auth_token_removed_user():
         reverse('auth'),
         data={'code_token': code_token, 'code': code})
     assert sorted(result.data.keys()) == ['non_field_errors']
-    assert result.status_code == 400
+    assert result.status_code == status.HTTP_400_BAD_REQUEST
     assert result.data['non_field_errors'] == ['Unknown user']
-
-
-def get_api_client():
-    api_client = APIClient()
-    api_client.default_format = 'json'
-    return api_client

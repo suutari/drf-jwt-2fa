@@ -1,14 +1,17 @@
 from rest_framework_jwt import views as jwt_views
 
 from . import serializers
+from .throttling import AuthTokenThrottler, CodeTokenThrottler
 
 
 class ObtainCodeToken(jwt_views.ObtainJSONWebToken):
     serializer_class = serializers.CodeTokenSerializer
+    throttle_classes = [CodeTokenThrottler]
 
 
 class ObtainAuthToken(jwt_views.ObtainJSONWebToken):
     serializer_class = serializers.AuthTokenSerializer
+    throttle_classes = [AuthTokenThrottler]
 
 
 class RefreshAuthToken(jwt_views.RefreshJSONWebToken):
