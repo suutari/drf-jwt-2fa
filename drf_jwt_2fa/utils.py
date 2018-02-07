@@ -35,3 +35,7 @@ def hash_string(string, hasher=hashlib.sha256, formatter=_unpadded_encode):
     :rtype: str
     """
     return formatter(hasher(string.encode('utf-8')).digest())
+
+
+def sha1_string(string, formatter=_unpadded_encode):
+    return hash_string(string, hasher=hashlib.sha1, formatter=formatter)

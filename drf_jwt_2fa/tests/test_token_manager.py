@@ -10,8 +10,8 @@ from drf_jwt_2fa.token_manager import CodeTokenManager
 
 from .factories import get_user
 from .utils import (
-    check_code_token, decode_jwt_part, encode_jwt_part,
-    get_verification_code_from_mailbox, override_jwt2fa_settings)
+    OverrideJwt2faSettings, check_code_token, decode_jwt_part, encode_jwt_part,
+    get_verification_code_from_mailbox)
 
 
 @pytest.mark.django_db
@@ -97,7 +97,7 @@ def test_check_code_token_and_code_with_invalid_code():
 
 
 @pytest.mark.django_db
-@override_jwt2fa_settings({
+@OverrideJwt2faSettings({
     'CODE_EXPIRATION_TIME': datetime.timedelta(seconds=-1),
 })
 def test_check_code_token_and_code_with_expired_token():

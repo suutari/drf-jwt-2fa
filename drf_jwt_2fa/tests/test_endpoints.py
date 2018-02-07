@@ -3,11 +3,11 @@ from django.contrib.auth.backends import ModelBackend
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
-from rest_framework.test import APIClient
 
 from .factories import get_user
 from .utils import (
-    check_auth_token, check_code_token, get_verification_code_from_mailbox)
+    check_auth_token, check_code_token, get_api_client,
+    get_verification_code_from_mailbox)
 
 
 @pytest.mark.django_db
@@ -110,9 +110,3 @@ def test_auth_token_removed_user():
     assert sorted(result.data.keys()) == ['non_field_errors']
     assert result.status_code == status.HTTP_400_BAD_REQUEST
     assert result.data['non_field_errors'] == ['Unknown user']
-
-
-def get_api_client():
-    api_client = APIClient()
-    api_client.default_format = 'json'
-    return api_client
