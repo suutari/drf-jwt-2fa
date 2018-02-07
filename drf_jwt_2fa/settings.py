@@ -8,6 +8,12 @@ from .utils import hash_string
 USER_SETTINGS = getattr(settings, 'JWT2FA_AUTH', None)
 
 DEFAULTS = {
+    # Length of the verification code (digits)
+    'CODE_LENGTH': 6,
+
+    # Characters used in the verification code
+    'CODE_CHARACTERS': '0123456789',
+
     # Secret key to use for signing the Code Tokens
     'CODE_TOKEN_SECRET_KEY': hash_string('2fa-code-' + settings.SECRET_KEY),
 

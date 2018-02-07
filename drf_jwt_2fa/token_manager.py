@@ -11,10 +11,15 @@ from .settings import api_settings
 
 
 class CodeTokenManager(object):
-    code_length = 6
-    code_chars = '0123456789'
-
     jwt_algorithm = 'HS256'
+
+    @property
+    def code_length(self):
+        return api_settings.CODE_LENGTH
+
+    @property
+    def code_chars(self):
+        return api_settings.CODE_CHARACTERS
 
     def create_code_token(self, user):
         """
