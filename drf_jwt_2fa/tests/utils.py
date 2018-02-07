@@ -1,10 +1,13 @@
 import base64
 import json
 import time
+from contextlib import contextmanager
 
 import jwt
 import six
+from django.conf import settings
 from django.core import mail
+from django.test import override_settings
 from rest_framework_jwt.settings import api_settings as jwt_settings
 
 from drf_jwt_2fa.settings import api_settings
@@ -68,3 +71,12 @@ def b64decode(encoded):
 def encode_jwt_part(data):
     json_data = json.dumps(data, separators=(',', ':')).encode('utf-8')
     return base64.b64encode(json_data).decode('ascii').strip('=')
+
+
+@contextmanager
+def override_jwt2fa_settings(values):
+    with override_settings(JWT2FA_AUTH=values):
+        api_settings.reload()
+        api_settings._user_settings = settings.JWT2FA_AUTH
+        yield
+    api_settings.reload()
