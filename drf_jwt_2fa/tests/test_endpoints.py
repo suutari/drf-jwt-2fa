@@ -86,7 +86,7 @@ def test_auth_token_success():
 def test_auth_token_invalid_code():
     code_token = get_code_token()
     correct_code = get_verification_code_from_mailbox()
-    code = '123456' if correct_code != '123456' else '654321'
+    code = '1234567' if correct_code != '1234567' else '7654321'
     client = get_api_client()
     result = client.post(
         reverse('auth'),

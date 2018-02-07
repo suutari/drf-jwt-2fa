@@ -92,8 +92,8 @@ def test_check_code_token_and_code_with_invalid_code():
     manager = CodeTokenManager()
     token = manager.create_code_token(get_user())
     correct_code = get_verification_code_from_mailbox()
-    assert len(correct_code) == 6
-    invalid_code = '123456' if correct_code != '123456' else '654321'
+    assert len(correct_code) == 7
+    invalid_code = '1234567' if correct_code != '1234567' else '7654321'
     with pytest.raises(serializers.ValidationError) as exc_info:
         manager.check_code_token_and_code(token, invalid_code)
     assert str(exc_info.value) == repr([u'Verification failed'])

@@ -9,7 +9,7 @@ USER_SETTINGS = getattr(settings, 'JWT2FA_AUTH', None)
 
 DEFAULTS = {
     # Length of the verification code (digits)
-    'CODE_LENGTH': 6,
+    'CODE_LENGTH': 7,
 
     # Characters used in the verification code
     'CODE_CHARACTERS': '0123456789',

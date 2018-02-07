@@ -28,7 +28,7 @@ The authentication flow uses two JWT tokens and a verification code:
 
 * First a token called Code Token is requested by providing username and
   password.  If the username and the password are correct, a random
-  (6~digit) verification code is generated and sent by e-mail to the
+  (7 digit) verification code is generated and sent by e-mail to the
   user's e-mail address.  This verification code is hashed with the
   Django's password hasher and the hash is included to the Code Token.
 
@@ -103,7 +103,7 @@ available settings with their default values::
 
   JWT2FA_AUTH = {
       # Length of the verification code (digits)
-      'CODE_LENGTH': 6,
+      'CODE_LENGTH': 7,
 
       # Characters used in the verification code
       'CODE_CHARACTERS': '0123456789',
