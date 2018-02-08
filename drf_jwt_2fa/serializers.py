@@ -1,6 +1,5 @@
 from django.contrib.auth import authenticate, get_user_model
-from django.utils.translation import ugettext as _
-from rest_framework import serializers
+from rest_framework import exceptions, serializers
 from rest_framework_jwt.compat import Serializer as JwtSerializer
 from rest_framework_jwt.serializers import PasswordField
 from rest_framework_jwt.settings import api_settings as jwt_settings
@@ -39,7 +38,7 @@ class CodeTokenSerializer(Jwt2faSerializer):
         }
         user = authenticate(**credentials)
         if not user:
-            raise serializers.ValidationError(_("Invalid credentials"))
+            raise exceptions.AuthenticationFailed()
         check_user_validity(user)
         return user
 
@@ -66,7 +65,7 @@ class AuthTokenSerializer(Jwt2faSerializer):
         try:
             user = user_model.objects.get_by_natural_key(username)
         except user_model.DoesNotExist:
-            raise serializers.ValidationError(_("Unknown user"))
+            raise exceptions.AuthenticationFailed()
         check_user_validity(user)
         return user
 

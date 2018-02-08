@@ -119,8 +119,9 @@ def test_code_token_throttling():
         frozen_datetime.tick(delta=datetime.timedelta(seconds=1))
         assert time.time() == 1577970001.0
         result0 = attempt(code_token1, incorrect_codes[0])
-        assert result0.data == {'non_field_errors': ['Verification failed']}
-        assert result0.status_code == status.HTTP_400_BAD_REQUEST
+        assert result0.data == {
+            'detail': 'Incorrect authentication credentials.'}
+        assert result0.status_code == status.HTTP_403_FORBIDDEN
 
         # Try 2 on code_token1, after 0.5s.  Should be throttled
         frozen_datetime.tick(delta=datetime.timedelta(seconds=0.5))
@@ -138,8 +139,9 @@ def test_code_token_throttling():
         frozen_datetime.tick(delta=datetime.timedelta(seconds=1.75))
         assert time.time() == 1577970003.25
         result2 = attempt(code_token1, incorrect_codes[2])
-        assert result2.data == {'non_field_errors': ['Verification failed']}
-        assert result2.status_code == status.HTTP_400_BAD_REQUEST
+        assert result2.data == {
+            'detail': 'Incorrect authentication credentials.'}
+        assert result2.status_code == status.HTTP_403_FORBIDDEN
 
         # Try 4 on code_token1, after 0.75s.  Should be throttled.
         frozen_datetime.tick(delta=datetime.timedelta(seconds=0.75))
@@ -150,8 +152,9 @@ def test_code_token_throttling():
         # Try with a different code token.  Should NOT be throttled.
         assert time.time() == 1577970004.0
         result4 = attempt(code_token2, incorrect_codes[4])
-        assert result4.data == {'non_field_errors': ['Verification failed']}
-        assert result4.status_code == status.HTTP_400_BAD_REQUEST
+        assert result4.data == {
+            'detail': 'Incorrect authentication credentials.'}
+        assert result4.status_code == status.HTTP_403_FORBIDDEN
 
         # Try without a code token.  Should NOT be throttled.
         assert time.time() == 1577970004.0
@@ -164,5 +167,6 @@ def test_code_token_throttling():
         frozen_datetime.tick(delta=datetime.timedelta(seconds=1.5))
         assert time.time() == 1577970005.5
         result5 = attempt(code_token1, incorrect_codes[5])
-        assert result5.data == {'non_field_errors': ['Verification failed']}
-        assert result5.status_code == status.HTTP_400_BAD_REQUEST
+        assert result5.data == {
+            'detail': 'Incorrect authentication credentials.'}
+        assert result5.status_code == status.HTTP_403_FORBIDDEN
