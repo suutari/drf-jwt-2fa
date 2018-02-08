@@ -1,6 +1,8 @@
 Django Rest Framework JWT 2FA Change Log
 ========================================
 
+* Change HTTP status codes of failure responses
+
 0.2.0 (Released 2018-02-07 12:30 +0200)
 ---------------------------------------
 

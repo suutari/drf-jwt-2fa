@@ -4,8 +4,9 @@ import jwt
 from django.contrib.auth import hashers as django_hashers
 from django.utils.crypto import get_random_string
 from django.utils.translation import ugettext as _
-from rest_framework import serializers
+from rest_framework import exceptions
 
+from .exceptions import VerificationCodeSendingFailed
 from .sending import CodeSendingFailed, send_verification_code
 from .settings import api_settings
 
@@ -37,9 +38,7 @@ class CodeTokenManager(object):
         try:
             self.send_verification_code(user, code)
         except CodeSendingFailed as error:
-            raise serializers.ValidationError(
-                _("Verification code sending failed: {reason}").format(
-                    reason=error))
+            raise VerificationCodeSendingFailed(error)
         return self.encode_token(payload)
 
     def check_code_token_and_code(self, token, code):
@@ -62,7 +61,7 @@ class CodeTokenManager(object):
         hashed_code = payload.get('vch')
         nonce = payload.get('vcn')
         if not self.is_verification_code_ok(code, nonce, hashed_code):
-            raise serializers.ValidationError(_("Verification failed"))
+            raise exceptions.AuthenticationFailed()
         return payload.get('usr')
 
     def generate_verification_code(self):
@@ -104,9 +103,9 @@ class CodeTokenManager(object):
                 verify=True,
                 algorithms=[self.jwt_algorithm])
         except jwt.ExpiredSignature:
-            raise serializers.ValidationError(_("Signature has expired."))
+            raise exceptions.PermissionDenied(_("Signature has expired."))
         except jwt.DecodeError:
-            raise serializers.ValidationError(_("Verification failed"))
+            raise exceptions.AuthenticationFailed()
 
     def hash_verification_code(self, code):
         nonce = get_random_string(length=10)

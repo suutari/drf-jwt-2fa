@@ -43,9 +43,8 @@ def test_code_token_invalid_password():
     result = client.post(
         reverse('get-code'),
         data={'username': 'testuser', 'password': 'wrong'})
-    assert sorted(result.data.keys()) == ['non_field_errors']
-    assert result.status_code == status.HTTP_400_BAD_REQUEST
-    assert result.data['non_field_errors'] == ['Invalid credentials']
+    assert result.data == {'detail': 'Incorrect authentication credentials.'}
+    assert result.status_code == status.HTTP_403_FORBIDDEN
 
 
 class InactiveAllowingAuthBackend(ModelBackend):
@@ -64,9 +63,9 @@ def test_code_token_inactive_user():
     result = client.post(
         reverse('get-code'),
         data={'username': 'testuser', 'password': 'a42'})
-    assert sorted(result.data.keys()) == ['non_field_errors']
-    assert result.status_code == status.HTTP_400_BAD_REQUEST
-    assert result.data['non_field_errors'] == ['Deactivated user']
+    assert result.data == {
+        'detail': 'You do not have permission to perform this action.'}
+    assert result.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
@@ -92,9 +91,8 @@ def test_auth_token_invalid_code():
     result = client.post(
         reverse('auth'),
         data={'code_token': code_token, 'code': code})
-    assert sorted(result.data.keys()) == ['non_field_errors']
-    assert result.status_code == status.HTTP_400_BAD_REQUEST
-    assert result.data['non_field_errors'] == ['Verification failed']
+    assert result.data == {'detail': 'Incorrect authentication credentials.'}
+    assert result.status_code == status.HTTP_403_FORBIDDEN
 
 
 @pytest.mark.django_db
@@ -107,6 +105,5 @@ def test_auth_token_removed_user():
     result = client.post(
         reverse('auth'),
         data={'code_token': code_token, 'code': code})
-    assert sorted(result.data.keys()) == ['non_field_errors']
-    assert result.status_code == status.HTTP_400_BAD_REQUEST
-    assert result.data['non_field_errors'] == ['Unknown user']
+    assert result.data == {'detail': 'Incorrect authentication credentials.'}
+    assert result.status_code == status.HTTP_403_FORBIDDEN

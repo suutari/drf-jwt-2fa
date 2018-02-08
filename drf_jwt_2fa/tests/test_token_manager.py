@@ -1,11 +1,14 @@
+from __future__ import unicode_literals
+
 import datetime
 import time
 
 import pytest
 from django.core import mail
 from mock import patch
-from rest_framework import serializers
+from rest_framework import exceptions, status
 
+from drf_jwt_2fa.exceptions import VerificationCodeSendingFailed
 from drf_jwt_2fa.token_manager import CodeTokenManager
 
 from .factories import get_user
@@ -38,10 +41,11 @@ def test_create_code_token_with_no_email():
 
     mail_outbox_size_before = len(mail.outbox)
 
-    with pytest.raises(serializers.ValidationError) as exc_info:
+    with pytest.raises(VerificationCodeSendingFailed) as exc_info:
         manager.create_code_token(get_user(username='no-email', email=''))
-    assert str(exc_info.value) == repr(
-        [u'Verification code sending failed: No e-mail address known'])
+    assert str(exc_info.value) == (
+        'Verification code sending failed: No e-mail address known')
+    assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
     # Check sent mails
     assert len(mail.outbox) == mail_outbox_size_before
@@ -52,10 +56,11 @@ def test_create_code_token_with_no_email():
 def test_create_code_token_with_email_send_error(mocked_send_mail):
     manager = CodeTokenManager()
 
-    with pytest.raises(serializers.ValidationError) as exc_info:
+    with pytest.raises(VerificationCodeSendingFailed) as exc_info:
         manager.create_code_token(get_user())
-    assert str(exc_info.value) == repr(
-        [u'Verification code sending failed: Unable to send e-mail'])
+    assert str(exc_info.value) == (
+        'Verification code sending failed: Unable to send e-mail')
+    assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
     assert mocked_send_mail.called_once()
 
@@ -79,9 +84,10 @@ def test_check_code_token_and_code_with_invalid_token():
     payload['usr'] = 'somebody-else'
     new_token = header + '.' + encode_jwt_part(payload) + '.' + signature
     check_code_token(new_token, username='somebody-else', verify=False)
-    with pytest.raises(serializers.ValidationError) as exc_info:
+    with pytest.raises(exceptions.AuthenticationFailed) as exc_info:
         manager.check_code_token_and_code(new_token, code)
-    assert str(exc_info.value) == repr([u'Verification failed'])
+    assert str(exc_info.value) == 'Incorrect authentication credentials.'
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.django_db
@@ -91,9 +97,10 @@ def test_check_code_token_and_code_with_invalid_code():
     correct_code = get_verification_code_from_mailbox()
     assert len(correct_code) == 7
     invalid_code = '1234567' if correct_code != '1234567' else '7654321'
-    with pytest.raises(serializers.ValidationError) as exc_info:
+    with pytest.raises(exceptions.AuthenticationFailed) as exc_info:
         manager.check_code_token_and_code(token, invalid_code)
-    assert str(exc_info.value) == repr([u'Verification failed'])
+    assert str(exc_info.value) == 'Incorrect authentication credentials.'
+    assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.django_db
@@ -105,6 +112,7 @@ def test_check_code_token_and_code_with_expired_token():
     token = manager.create_code_token(get_user())
     assert decode_jwt_part(token.split('.')[1])['exp'] < time.time()
     code = get_verification_code_from_mailbox()
-    with pytest.raises(serializers.ValidationError) as exc_info:
+    with pytest.raises(exceptions.PermissionDenied) as exc_info:
         manager.check_code_token_and_code(token, code)
-    assert str(exc_info.value) == repr([u'Signature has expired.'])
+    assert str(exc_info.value) == 'Signature has expired.'
+    assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN

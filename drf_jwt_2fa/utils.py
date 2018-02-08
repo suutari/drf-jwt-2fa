@@ -1,8 +1,7 @@
 import base64
 import hashlib
 
-from django.utils.translation import ugettext as _
-from rest_framework import serializers
+from rest_framework import exceptions
 
 
 def check_user_validity(user):
@@ -13,7 +12,7 @@ def check_user_validity(user):
     :rtype: None
     """
     if not user.is_active:
-        raise serializers.ValidationError(_("Deactivated user"))
+        raise exceptions.PermissionDenied()
 
 
 def _unpadded_encode(data, encoder=base64.b64encode):
