@@ -3,13 +3,17 @@
 #   prequ update
 #
 -e .
-django==2.0.2             # via drf-jwt-2fa
-djangorestframework==3.7.7  # via drf-jwt-2fa
+django==2.1.2             # via drf-jwt-2fa
+djangorestframework==3.8.2  # via drf-jwt-2fa
 djangorestframework-jwt==1.11.0  # via drf-jwt-2fa
-pluggy==0.6.0             # via tox
-py==1.5.2                 # via tox
-pyjwt==1.5.3              # via djangorestframework-jwt
-pytz==2017.3              # via django
+pluggy==0.7.1             # via tox
+py==1.6.0                 # via tox
+pyjwt==1.6.4              # via djangorestframework-jwt
+pytz==2018.5              # via django
 six==1.11.0               # via tox
-tox==2.9.1
-virtualenv==15.1.0        # via tox
+toml==0.10.0              # via tox
+tox==3.4.0
+virtualenv==16.0.0        # via tox
+
+# The following packages are considered to be unsafe in a requirements file:
+# setuptools                # via tox
