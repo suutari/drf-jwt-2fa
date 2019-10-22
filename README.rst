@@ -60,6 +60,11 @@ Configuration
 Configure Django Rest Framework to use the provided authentication class
 by adding something like this to the settings::
 
+  INSTALLED_APPS = [
+      ...,
+      'drf_jwt_2fa',
+  ]
+
   REST_FRAMEWORK = {
       'DEFAULT_AUTHENTICATION_CLASSES': [
           'drf_jwt_2fa.authentication.Jwt2faAuthentication',
