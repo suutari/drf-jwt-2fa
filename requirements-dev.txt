@@ -3,7 +3,7 @@
 #   prequ update
 #
 -e .
-django==2.1.2             # via drf-jwt-2fa
+django==2.2.10             # via drf-jwt-2fa
 djangorestframework==3.8.2  # via drf-jwt-2fa
 djangorestframework-jwt==1.11.0  # via drf-jwt-2fa
 pluggy==0.7.1             # via tox
