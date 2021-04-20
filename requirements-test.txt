@@ -10,7 +10,7 @@ mock==2.0.0
 more-itertools==4.3.0     # via pytest
 pbr==4.3.0                # via mock
 pluggy==0.7.1             # via pytest
-py==1.6.0                 # via pytest
+py==1.10.0                 # via pytest
 pytest==3.8.2
 pytest-cov==2.6.0
 pytest-django==3.4.3

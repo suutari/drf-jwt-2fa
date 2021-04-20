@@ -7,7 +7,7 @@ django==2.1.2             # via drf-jwt-2fa
 djangorestframework==3.8.2  # via drf-jwt-2fa
 djangorestframework-jwt==1.11.0  # via drf-jwt-2fa
 pluggy==0.7.1             # via tox
-py==1.6.0                 # via tox
+py==1.10.0                 # via tox
 pyjwt==1.6.4              # via djangorestframework-jwt
 pytz==2018.5              # via django
 six==1.11.0               # via tox
