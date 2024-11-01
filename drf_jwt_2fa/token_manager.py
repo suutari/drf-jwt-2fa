@@ -3,7 +3,7 @@ import time
 import jwt
 from django.contrib.auth import hashers as django_hashers
 from django.utils.crypto import get_random_string
-from django.utils.translation import ugettext as _
+from django.utils.translation import gettext as _
 from rest_framework import exceptions
 
 from .exceptions import VerificationCodeSendingFailed
