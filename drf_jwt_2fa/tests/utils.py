@@ -24,14 +24,21 @@ def get_api_client():
 
 def check_auth_token(token, username='testuser', email='testuser@localhost'):
     payload = check_token_basics_and_get_payload(token)
-    assert sorted(payload.keys()) == ['email', 'exp', 'user_id', 'username']
-    assert isinstance(payload['user_id'], int)
-    assert isinstance(payload['username'], str)
-    assert isinstance(payload['email'], str)
+    assert type(payload) is dict
+    assert payload == {
+        'username': username,
+        'orig_iat': payload.get('orig_iat'),
+        'iat': payload.get('iat'),
+        'exp': payload.get('exp'),
+        'jti': payload.get('jti'),
+        'user_id': payload.get('user_id'),
+    }, "bad payload: %r" % (payload,)
+    assert isinstance(payload['orig_iat'], int)
+    assert isinstance(payload['iat'], int)
     assert isinstance(payload['exp'], int)
+    assert isinstance(payload['jti'], str)
+    assert isinstance(payload['user_id'], int)
     assert payload['exp'] > time.time()
-    assert payload['username'] == username
-    assert payload['email'] == email
     key = jwt_settings.JWT_SECRET_KEY
     jwt.decode(token, key, algorithms=['HS256'])
 

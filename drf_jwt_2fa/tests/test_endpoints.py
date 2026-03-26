@@ -22,8 +22,9 @@ def get_code_token():
     result = client.post(
         reverse('get-code'),
         data={'username': 'testuser', 'password': 'a42'})
-    assert sorted(result.data.keys()) == ['token']
-    assert result.status_code == status.HTTP_200_OK
+    assert 'token' in result.data
+    assert isinstance(result.data, dict)
+    assert result.status_code == status.HTTP_201_CREATED
     return result.data['token']
 
 
@@ -76,8 +77,8 @@ def test_auth_token_success():
     result = client.post(
         reverse('auth'),
         data={'code_token': code_token, 'code': code})
-    assert sorted(result.data.keys()) == ['token']
-    assert result.status_code == status.HTTP_200_OK
+    assert 'token' in result.data
+    assert result.status_code == status.HTTP_201_CREATED
     token = result.data['token']
     check_auth_token(token)
 

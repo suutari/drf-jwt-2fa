@@ -62,7 +62,7 @@ def test_create_code_token_with_email_send_error(mocked_send_mail):
         'Verification code sending failed: Unable to send e-mail')
     assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
-    assert mocked_send_mail.called_once()
+    assert mocked_send_mail.call_count == 1
 
 
 @pytest.mark.django_db
@@ -84,9 +84,10 @@ def test_check_code_token_and_code_with_invalid_token():
     payload['usr'] = 'somebody-else'
     new_token = header + '.' + encode_jwt_part(payload) + '.' + signature
     check_code_token(new_token, username='somebody-else', verify=False)
-    with pytest.raises(exceptions.AuthenticationFailed) as exc_info:
+    with pytest.raises(Exception) as exc_info:
         manager.check_code_token_and_code(new_token, code)
     assert str(exc_info.value) == 'Incorrect authentication credentials.'
+    assert isinstance(exc_info.value, exceptions.AuthenticationFailed)
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
 
