@@ -1,6 +1,6 @@
 [project]
 name = "drf-jwt-2fa"
-version = "0.3.0"
+version = "0.4.0"
 description = "Django Rest Framework JWT 2FA"
 readme = "README.rst"
 keywords = [
