@@ -93,7 +93,7 @@ class CodeTokenManager(object):
     def encode_token(self, payload):
         key = api_settings.CODE_TOKEN_SECRET_KEY
         jwt_data = jwt.encode(payload, key, self.jwt_algorithm)
-        return jwt_data.decode('utf-8')
+        return jwt_data
 
     def decode_token(self, token):
         try:
