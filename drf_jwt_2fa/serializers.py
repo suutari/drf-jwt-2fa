@@ -9,16 +9,13 @@ jwt_encode_handler = jwt_settings.JWT_ENCODE_HANDLER
 jwt_payload_handler = jwt_settings.JWT_PAYLOAD_HANDLER
 
 
-# From https://github.com/jpadilla/django-rest-framework-jwt/blob/4d4aa6e/rest_framework_jwt/compat.py
 class JwtSerializer(serializers.Serializer):
     @property
     def object(self):
         return self.validated_data
 
 
-# From https://github.com/jpadilla/django-rest-framework-jwt/blob/4d4aa6e/rest_framework_jwt/compat.py
 class PasswordField(serializers.CharField):
-
     def __init__(self, *args, **kwargs):
         if 'style' not in kwargs:
             kwargs['style'] = {'input_type': 'password'}
