@@ -3,6 +3,8 @@
 /build
 /dist
 /venv
+/.venv
+.python-version
 *.egg-info
 *.py[cdo]
 requirements-local.*
