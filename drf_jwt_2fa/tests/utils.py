@@ -35,7 +35,8 @@ def check_auth_token(token, username='testuser', email='testuser@localhost'):
     assert isinstance(payload['iat'], int)
     assert isinstance(payload['exp'], int)
     assert isinstance(payload['jti'], str)
-    assert isinstance(payload['user_id'], str)
+    # Note: Normally user_id is a string, but in Django 3.2 it's an int
+    assert isinstance(payload['user_id'], (str, int))
     assert payload['exp'] > time.time()
     key = jwt_settings.SIGNING_KEY
     jwt.decode(token, key, algorithms=['HS256'])
