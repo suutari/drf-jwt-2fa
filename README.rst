@@ -82,17 +82,17 @@ something like this in an `urls.py`::
   from django.conf.urls import include, url
 
   urlpatterns = [
-      url(r'^auth/', include(drf_jwt_2fa.urls, namespace='auth')),
+      url(r'^auth/', include(drf_jwt_2fa.urls)),
   ]
 
 or by configuring each view individually::
 
-  from django.conf.urls import include, url
+  from django.urls import include, path
   from drf_jwt_2fa.views import obtain_auth_token, obtain_code_token
 
   urlpatterns = [
-      url(r'^get-code-token/', obtain_code_token),
-      url(r'^get-auth-token/', obtain_auth_token),
+      path('get-code-token/', obtain_code_token),
+      path('get-auth-token/', obtain_auth_token),
   ]
 
 Additional Settings
