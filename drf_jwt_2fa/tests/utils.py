@@ -22,15 +22,22 @@ def get_api_client():
     return api_client
 
 
-def check_auth_token(token, username='testuser', email='testuser@localhost'):
+def check_auth_token(
+    token, username='testuser', email='testuser@localhost', token_type='access'
+):
     payload = check_token_basics_and_get_payload(token)
     assert type(payload) is dict
+    type_specific_items = {
+        'access': {},
+        'sliding': {'refresh_exp': payload.get('refresh_exp')},
+    }[token_type]
     assert payload == {
-        'token_type': 'access',
+        'token_type': token_type,
         'iat': payload.get('iat'),
         'exp': payload.get('exp'),
         'jti': payload.get('jti'),
         'user_id': payload.get('user_id'),
+        **type_specific_items,
     }
     assert isinstance(payload['iat'], int)
     assert isinstance(payload['exp'], int)

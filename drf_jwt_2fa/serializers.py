@@ -1,7 +1,7 @@
 from django.contrib.auth import authenticate, get_user_model
 from django.utils.module_loading import import_string
 from rest_framework import exceptions, serializers
-from rest_framework_simplejwt.settings import api_settings as jwt_settings
+from rest_framework_simplejwt import settings as jwt_settings
 
 from .settings import api_settings
 from .token_manager import CodeTokenManager
@@ -89,5 +89,6 @@ class AuthTokenSerializer(Jwt2faSerializer):
 
     @classmethod
     def get_token_class(cls):
-        token_serializer = import_string(jwt_settings.TOKEN_OBTAIN_SERIALIZER)
+        serializer_name = jwt_settings.api_settings.TOKEN_OBTAIN_SERIALIZER
+        token_serializer = import_string(serializer_name)
         return token_serializer.token_class
