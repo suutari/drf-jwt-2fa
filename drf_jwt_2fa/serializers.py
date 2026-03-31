@@ -2,19 +2,11 @@ from django.contrib.auth import authenticate, get_user_model
 from django.utils.module_loading import import_string
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt import settings as jwt_settings
+from rest_framework_simplejwt.serializers import PasswordField
 
 from .settings import api_settings
 from .token_manager import CodeTokenManager
 from .utils import check_user_validity
-
-
-class PasswordField(serializers.CharField):
-    def __init__(self, *args, **kwargs):
-        if 'style' not in kwargs:
-            kwargs['style'] = {'input_type': 'password'}
-        else:
-            kwargs['style']['input_type'] = 'password'
-        super(PasswordField, self).__init__(*args, **kwargs)
 
 
 class Jwt2faSerializer(serializers.Serializer):
