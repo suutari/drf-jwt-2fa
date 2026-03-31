@@ -121,7 +121,7 @@ def test_code_token_throttling():
         result0 = attempt(code_token1, incorrect_codes[0])
         assert result0.data == {
             'detail': 'Incorrect authentication credentials.'}
-        assert result0.status_code == status.HTTP_403_FORBIDDEN
+        assert result0.status_code == status.HTTP_401_UNAUTHORIZED
 
         # Try 2 on code_token1, after 0.5s.  Should be throttled
         frozen_datetime.tick(delta=datetime.timedelta(seconds=0.5))
@@ -141,7 +141,7 @@ def test_code_token_throttling():
         result2 = attempt(code_token1, incorrect_codes[2])
         assert result2.data == {
             'detail': 'Incorrect authentication credentials.'}
-        assert result2.status_code == status.HTTP_403_FORBIDDEN
+        assert result2.status_code == status.HTTP_401_UNAUTHORIZED
 
         # Try 4 on code_token1, after 0.75s.  Should be throttled.
         frozen_datetime.tick(delta=datetime.timedelta(seconds=0.75))
@@ -154,7 +154,7 @@ def test_code_token_throttling():
         result4 = attempt(code_token2, incorrect_codes[4])
         assert result4.data == {
             'detail': 'Incorrect authentication credentials.'}
-        assert result4.status_code == status.HTTP_403_FORBIDDEN
+        assert result4.status_code == status.HTTP_401_UNAUTHORIZED
 
         # Try without a code token.  Should NOT be throttled.
         assert time.time() == 1577970004.0
@@ -169,4 +169,4 @@ def test_code_token_throttling():
         result5 = attempt(code_token1, incorrect_codes[5])
         assert result5.data == {
             'detail': 'Incorrect authentication credentials.'}
-        assert result5.status_code == status.HTTP_403_FORBIDDEN
+        assert result5.status_code == status.HTTP_401_UNAUTHORIZED
