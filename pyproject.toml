@@ -52,9 +52,11 @@ dev = [
     "tox-uv-bare>=1.33.4",
 ]
 
-[tool.pytest.ini_options]
+[tool.pytest]
+strict = true
+pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "test_settings"
-pythonpath = "."
+addopts = ["--doctest-modules"]
 
 [tool.coverage.run]
 branch = true
