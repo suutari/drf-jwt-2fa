@@ -1,6 +1,12 @@
 Django Rest Framework JWT 2FA Change Log
 ========================================
 
+0.5.0 (Released 2026-04-01 13:37 +0200)
+---------------------------------------
+
+* Switch to DRF Simple JWT from drf-jwt
+* Support for Django 6.0
+
 0.4.0 (Released 2026-03-26 18:15 +0200)
 ---------------------------------------
 
