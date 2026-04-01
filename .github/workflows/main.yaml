@@ -1,0 +1,70 @@
+---
+name: "Tests and Checks"
+on:
+  push:
+    branches: [main, test]
+  pull_request:
+    branches: [main, test]
+  workflow_dispatch:
+
+jobs:
+  tests:
+    strategy:
+      matrix:
+        python: ["3.10", "3.12", "3.14"]
+        django: ["2.2", "3.2", "4.2", "5.2", "6.0"]
+        exclude:
+          - {python: "3.10", django: "6.0"}
+          - {python: "3.12", django: "2.2"}
+          - {python: "3.14", django: "2.2"}
+          - {python: "3.14", django: "3.2"}
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{matrix.python}}
+
+      - name: Install Tox and tox-uv
+        run: pip install tox tox-uv
+
+      - name: Set TOXENV
+        run: >-
+          echo "TOXENV=py${{matrix.python}}-django${{matrix.django}}"
+          | tr -d . >> $GITHUB_ENV
+
+      - name: Test with Tox
+        run: tox
+        env:
+          TOXENV: ${{env.TOXENV}}
+
+      - name: Install git, curl and coverage for codecov action
+        run: sudo apt-get install -y git curl && pip install coverage
+
+      - name: Upload coverage data to codecov.io
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{secrets.CODECOV_TOKEN}}
+
+  checks:
+    strategy:
+      matrix:
+        toxenv: [style, uvlock]
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.14"
+
+      - name: Install Tox and tox-uv
+        run: pip install tox tox-uv
+
+      - name: Run the check with Tox
+        run: tox
+        env:
+          TOXENV: ${{matrix.toxenv}}
