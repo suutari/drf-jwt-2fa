@@ -3,9 +3,9 @@ Django Rest Framework JWT 2FA
 
 This package provides a Two Factor Authentication for Django Rest
 Framework using JSON Web Tokens.  The implementation is based on another
-DRF authentication library called `Simple JWT <simple-jwt_>`_.
+DRF authentication library called `Simple JWT <simplejwt_>`_.
 
-.. _simple-jwt: https://github.com/jazzband/djangorestframework-simplejwt
+.. _simplejwt: https://github.com/jazzband/djangorestframework-simplejwt
 
 |PyPI| |Coverage|
 
@@ -71,7 +71,7 @@ by adding something like this to the settings::
 
 Note: Authentication token endpoint can return different kind of tokens
 based on ``token_class`` property of the class configured as the
-``TOKEN_OBTAIN_SERIALIZER`` for `Simple JWT <drf-jwt_>`_.
+``TOKEN_OBTAIN_SERIALIZER`` for `Simple JWT <simplejwt_>`_.
 
 The URLs for the authentication API endpoints can be configured with
 something like this in an `urls.py`::
