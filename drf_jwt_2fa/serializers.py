@@ -1,30 +1,15 @@
 from django.contrib.auth import authenticate, get_user_model
+from django.utils.module_loading import import_string
 from rest_framework import exceptions, serializers
-from rest_framework_jwt.settings import api_settings as jwt_settings
+from rest_framework_simplejwt import settings as jwt_settings
+from rest_framework_simplejwt.serializers import PasswordField
 
+from .settings import api_settings
 from .token_manager import CodeTokenManager
 from .utils import check_user_validity
 
-jwt_encode_handler = jwt_settings.JWT_ENCODE_HANDLER
-jwt_payload_handler = jwt_settings.JWT_PAYLOAD_HANDLER
 
-
-class JwtSerializer(serializers.Serializer):
-    @property
-    def object(self):
-        return self.validated_data
-
-
-class PasswordField(serializers.CharField):
-    def __init__(self, *args, **kwargs):
-        if 'style' not in kwargs:
-            kwargs['style'] = {'input_type': 'password'}
-        else:
-            kwargs['style']['input_type'] = 'password'
-        super(PasswordField, self).__init__(*args, **kwargs)
-
-
-class Jwt2faSerializer(JwtSerializer):
+class Jwt2faSerializer(serializers.Serializer):
     token_manager_class = CodeTokenManager
 
     def __init__(self, *args, **kwargs):
@@ -34,10 +19,7 @@ class Jwt2faSerializer(JwtSerializer):
     def validate(self, attrs):
         validated_attrs = super(Jwt2faSerializer, self).validate(attrs)
         user = self._authenticate(validated_attrs)
-        return {
-            'token': self._create_token(user),
-            'user': user,
-        }
+        return self._create_tokens(user)
 
 
 class CodeTokenSerializer(Jwt2faSerializer):
@@ -55,8 +37,10 @@ class CodeTokenSerializer(Jwt2faSerializer):
         check_user_validity(user)
         return user
 
-    def _create_token(self, user):
-        return self.token_manager.create_code_token(user)
+    def _create_tokens(self, user):
+        return {
+            'token': self.token_manager.create_code_token(user),
+        }
 
 
 class AuthTokenSerializer(Jwt2faSerializer):
@@ -82,6 +66,21 @@ class AuthTokenSerializer(Jwt2faSerializer):
         check_user_validity(user)
         return user
 
-    def _create_token(self, user):
-        payload = jwt_payload_handler(user)
-        return jwt_encode_handler(payload)
+    def _create_tokens(self, user):
+        token = self.get_token_class().for_user(user)
+        if hasattr(token, "access_token"):
+            # The keys are 'access' and 'refresh' by default
+            access_key = api_settings.AUTH_RESULT_ACCESS_TOKEN_KEY
+            refresh_key = api_settings.AUTH_RESULT_REFRESH_TOKEN_KEY
+            return {
+                access_key: str(token.access_token),
+                refresh_key: str(token),
+            }
+        token_key = api_settings.AUTH_RESULT_OTHER_TOKEN_KEY
+        return {token_key: str(token)}
+
+    @classmethod
+    def get_token_class(cls):
+        serializer_name = jwt_settings.api_settings.TOKEN_OBTAIN_SERIALIZER
+        token_serializer = import_string(serializer_name)
+        return token_serializer.token_class

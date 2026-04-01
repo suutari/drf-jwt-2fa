@@ -24,7 +24,7 @@ def get_code_token():
         data={'username': 'testuser', 'password': 'a42'})
     assert 'token' in result.data
     assert isinstance(result.data, dict)
-    assert result.status_code == status.HTTP_201_CREATED
+    assert result.status_code == status.HTTP_200_OK
     return result.data['token']
 
 
@@ -45,7 +45,7 @@ def test_code_token_invalid_password():
         reverse('get-code'),
         data={'username': 'testuser', 'password': 'wrong'})
     assert result.data == {'detail': 'Incorrect authentication credentials.'}
-    assert result.status_code == status.HTTP_403_FORBIDDEN
+    assert result.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 class InactiveAllowingAuthBackend(ModelBackend):
@@ -77,9 +77,10 @@ def test_auth_token_success():
     result = client.post(
         reverse('auth'),
         data={'code_token': code_token, 'code': code})
-    assert 'token' in result.data
-    assert result.status_code == status.HTTP_201_CREATED
-    token = result.data['token']
+    assert 'access' in result.data
+    assert 'refresh' in result.data
+    assert result.status_code == status.HTTP_200_OK
+    token = result.data['access']
     check_auth_token(token)
 
 
@@ -93,7 +94,7 @@ def test_auth_token_invalid_code():
         reverse('auth'),
         data={'code_token': code_token, 'code': code})
     assert result.data == {'detail': 'Incorrect authentication credentials.'}
-    assert result.status_code == status.HTTP_403_FORBIDDEN
+    assert result.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.django_db
@@ -107,4 +108,25 @@ def test_auth_token_removed_user():
         reverse('auth'),
         data={'code_token': code_token, 'code': code})
     assert result.data == {'detail': 'Incorrect authentication credentials.'}
-    assert result.status_code == status.HTTP_403_FORBIDDEN
+    assert result.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@override_settings(SIMPLE_JWT={
+    'TOKEN_OBTAIN_SERIALIZER': (
+        'rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer'
+    ),
+})
+@pytest.mark.django_db
+def test_auth_token_with_custom_obtainer():
+    code_token = get_code_token()
+    code = get_verification_code_from_mailbox()
+    client = get_api_client()
+    result = client.post(
+        reverse('auth'),
+        data={'code_token': code_token, 'code': code})
+    assert 'token' in result.data
+    assert 'access' not in result.data
+    assert 'refresh' not in result.data
+    assert result.status_code == status.HTTP_200_OK
+    token = result.data['token']
+    check_auth_token(token, token_type='sliding')

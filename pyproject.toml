@@ -21,6 +21,8 @@ classifiers = [
     "Framework :: Django :: 2.2",
     "Framework :: Django :: 3.2",
     "Framework :: Django :: 4.2",
+    "Framework :: Django :: 5.2",
+    "Framework :: Django :: 6.0",
     "Intended Audience :: Developers",
     "Operating System :: OS Independent",
     "Programming Language :: Python",
@@ -31,7 +33,7 @@ requires-python = ">=3.10"
 dependencies = [
     "django>2",
     "djangorestframework>=3.0",
-    "drf-jwt>=1.19.2",
+    "djangorestframework-simplejwt>=5.1",
 ]
 
 [project.urls]
@@ -52,6 +54,15 @@ dev = [
     "tox-uv-bare>=1.33.4",
 ]
 
-[tool.pytest.ini_options]
+[tool.pytest]
+strict = true
+pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "test_settings"
-pythonpath = "."
+addopts = ["--doctest-modules"]
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+precision = 1
+show_missing = true

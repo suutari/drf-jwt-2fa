@@ -9,7 +9,7 @@ from django.core import mail
 from django.test import override_settings
 from django.test.utils import TestContextDecorator
 from rest_framework.test import APIClient
-from rest_framework_jwt.settings import api_settings as jwt_settings
+from rest_framework_simplejwt.settings import api_settings as jwt_settings
 
 from drf_jwt_2fa.settings import api_settings
 
@@ -22,24 +22,30 @@ def get_api_client():
     return api_client
 
 
-def check_auth_token(token, username='testuser', email='testuser@localhost'):
+def check_auth_token(
+    token, username='testuser', email='testuser@localhost', token_type='access'
+):
     payload = check_token_basics_and_get_payload(token)
     assert type(payload) is dict
+    type_specific_items = {
+        'access': {},
+        'sliding': {'refresh_exp': payload.get('refresh_exp')},
+    }[token_type]
     assert payload == {
-        'username': username,
-        'orig_iat': payload.get('orig_iat'),
+        'token_type': token_type,
         'iat': payload.get('iat'),
         'exp': payload.get('exp'),
         'jti': payload.get('jti'),
         'user_id': payload.get('user_id'),
-    }, "bad payload: %r" % (payload,)
-    assert isinstance(payload['orig_iat'], int)
+        **type_specific_items,
+    }
     assert isinstance(payload['iat'], int)
     assert isinstance(payload['exp'], int)
     assert isinstance(payload['jti'], str)
-    assert isinstance(payload['user_id'], int)
+    # Note: Normally user_id is a string, but in Django 3.2 it's an int
+    assert isinstance(payload['user_id'], (str, int))
     assert payload['exp'] > time.time()
-    key = jwt_settings.JWT_SECRET_KEY
+    key = jwt_settings.SIGNING_KEY
     jwt.decode(token, key, algorithms=['HS256'])
 
 

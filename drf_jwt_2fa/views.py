@@ -1,24 +1,24 @@
-from rest_framework_jwt import views as jwt_views
+from rest_framework_simplejwt import views as jwt_views
 
 from . import serializers
 from .throttling import AuthTokenThrottler, CodeTokenThrottler
 
 
-class ObtainCodeToken(jwt_views.ObtainJSONWebTokenView):
+class ObtainCodeToken(jwt_views.TokenObtainPairView):
     serializer_class = serializers.CodeTokenSerializer
     throttle_classes = [CodeTokenThrottler]
 
 
-class ObtainAuthToken(jwt_views.ObtainJSONWebTokenView):
+class ObtainAuthToken(jwt_views.TokenObtainPairView):
     serializer_class = serializers.AuthTokenSerializer
     throttle_classes = [AuthTokenThrottler]
 
 
-class RefreshAuthToken(jwt_views.RefreshJSONWebTokenView):
+class RefreshAuthToken(jwt_views.TokenRefreshView):
     pass
 
 
-class VerifyAuthToken(jwt_views.VerifyJSONWebTokenView):
+class VerifyAuthToken(jwt_views.TokenVerifyView):
     pass
 
 

@@ -3,19 +3,15 @@ Django Rest Framework JWT 2FA
 
 This package provides a Two Factor Authentication for Django Rest
 Framework using JSON Web Tokens.  The implementation is based on another
-DRF authentication library called `REST framework JWT Auth <drf-jwt_>`_.
+DRF authentication library called `Simple JWT <simple-jwt_>`_.
 
-.. _drf-jwt: https://github.com/GetBlimp/django-rest-framework-jwt
+.. _simple-jwt: https://github.com/jazzband/djangorestframework-simplejwt
 
 |PyPI| |Test Status| |Coverage|
 
 .. |PyPI| image::
    https://img.shields.io/pypi/v/drf-jwt-2fa.svg
    :target: https://pypi.python.org/pypi/drf-jwt-2fa/
-
-.. |Test Status| image::
-   https://img.shields.io/travis/suutari/drf-jwt-2fa.svg
-   :target: https://travis-ci.org/suutari/drf-jwt-2fa
 
 .. |Coverage| image::
    https://img.shields.io/codecov/c/github/suutari/drf-jwt-2fa.svg
@@ -37,15 +33,18 @@ The authentication flow uses two JWT tokens and a verification code:
   sending the Code Token and the verification code to another endpoint.
   If the token and the code are correct, an authentication token is
   returned.  This authentication token can be used to authenticate the
-  following API requests.  It is in the same format as the JWT tokens
-  of the `REST framework JWT Auth <drf-jwt_>`_.
+  following API requests.  With default configuration this
+  authentication token is an access token and its accompanied with a
+  refresh token.  They are in the same format as the JWT tokens of the
+  `Simple JWT <simplejwt_>`_.
 
 Requirements
 ------------
 
-* Python 2.7, 3.4, 3.5, or 3.6
-* Django 1.11 or 2.0
+* Python 3.10 or newer
+* Django 2.2 or newer
 * Django Rest Framework
+* Simple JWT
 
 Installation
 ------------
@@ -70,10 +69,9 @@ by adding something like this to the settings::
   }
 
 
-Note: Authentication token options can be configured with the
-``JWT_AUTH`` configuration item as documented in `REST framework JWT
-Auth <drf-jwt_>`_.
-
+Note: Authentication token endpoint can return different kind of tokens
+based on ``token_class`` property of the class configured as the
+``TOKEN_OBTAIN_SERIALIZER`` for `Simple JWT <drf-jwt_>`_.
 
 The URLs for the authentication API endpoints can be configured with
 something like this in an `urls.py`::
@@ -82,17 +80,17 @@ something like this in an `urls.py`::
   from django.conf.urls import include, url
 
   urlpatterns = [
-      url(r'^auth/', include(drf_jwt_2fa.urls, namespace='auth')),
+      url(r'^auth/', include(drf_jwt_2fa.urls)),
   ]
 
 or by configuring each view individually::
 
-  from django.conf.urls import include, url
+  from django.urls import include, path
   from drf_jwt_2fa.views import obtain_auth_token, obtain_code_token
 
   urlpatterns = [
-      url(r'^get-code-token/', obtain_code_token),
-      url(r'^get-auth-token/', obtain_auth_token),
+      path('get-code-token/', obtain_code_token),
+      path('get-auth-token/', obtain_auth_token),
   ]
 
 Additional Settings
@@ -124,6 +122,12 @@ available settings with their default values::
       # request authentication token with a with the same code token and a
       # verification code
       'AUTH_TOKEN_RETRY_WAIT_TIME': datetime.timedelta(seconds=2),
+
+      # Name of the keys for the token values in the dictionary returned
+      # by the ObtainAuthToken view
+      'AUTH_RESULT_ACCESS_TOKEN_KEY': 'access',
+      'AUTH_RESULT_REFRESH_TOKEN_KEY': 'refresh',
+      'AUTH_RESULT_OTHER_TOKEN_KEY': 'token',
 
       # Function that sends the verification code to the user
       'CODE_SENDER': 'drf_jwt_2fa.sending.send_verification_code_via_email',

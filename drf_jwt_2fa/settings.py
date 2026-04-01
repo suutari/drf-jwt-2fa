@@ -31,6 +31,12 @@ DEFAULTS = {
     # verification code
     'AUTH_TOKEN_RETRY_WAIT_TIME': datetime.timedelta(seconds=2),
 
+    # Name of the keys for the token values in the dictionary returned
+    # by the ObtainAuthToken view
+    'AUTH_RESULT_ACCESS_TOKEN_KEY': 'access',
+    'AUTH_RESULT_REFRESH_TOKEN_KEY': 'refresh',
+    'AUTH_RESULT_OTHER_TOKEN_KEY': 'token',
+
     # Function that sends the verification code to the user
     'CODE_SENDER': 'drf_jwt_2fa.sending.send_verification_code_via_email',
 
