@@ -7,7 +7,7 @@ DRF authentication library called `Simple JWT <simple-jwt_>`_.
 
 .. _simple-jwt: https://github.com/jazzband/djangorestframework-simplejwt
 
-|PyPI| |Test Status| |Coverage|
+|PyPI| |Coverage|
 
 .. |PyPI| image::
    https://img.shields.io/pypi/v/drf-jwt-2fa.svg
