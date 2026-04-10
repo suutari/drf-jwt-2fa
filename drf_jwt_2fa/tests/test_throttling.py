@@ -24,8 +24,10 @@ from .utils import (
 
 
 @pytest.mark.parametrize('num', [None, 1, 42, 938383])
-@pytest.mark.parametrize('duration_str, duration_seconds', [
-    ('s', 1), ('7s', 7), ('m', 60), ('10m', 600), ('h', 3600), ('d', 86400)])
+@pytest.mark.parametrize(
+    'duration_str, duration_seconds',
+    [('s', 1), ('7s', 7), ('m', 60), ('10m', 600), ('h', 3600), ('d', 86400)],
+)
 def test_code_token_throttler_parse_rate(num, duration_str, duration_seconds):
     rate_string = str(num) + '/' + duration_str if num else None
     expected_result = (num, duration_seconds) if num else (None, None)
@@ -90,7 +92,8 @@ def check_code_token_throttler(rf):
 def inspect_cache(cache):
     return {
         key: pickle.loads(pickled_value)
-        for (key, pickled_value) in cache._cache.items()}
+        for (key, pickled_value) in cache._cache.items()
+    }
 
 
 @pytest.mark.django_db
@@ -105,16 +108,27 @@ def test_code_token_throttling():
         code2 = get_verification_code_from_mailbox()
 
         incorrect_codes = [
-            code for code in [
-                '1234567', '2345678', '3456789', '4567890', '5678901',
-                '6789012', '7890123', '8901234', '9012345', '0123456']
-            if code not in {code1, code2}]
+            code
+            for code in [
+                '1234567',
+                '2345678',
+                '3456789',
+                '4567890',
+                '5678901',
+                '6789012',
+                '7890123',
+                '8901234',
+                '9012345',
+                '0123456',
+            ]
+            if code not in {code1, code2}
+        ]
         client = get_api_client()
 
         def attempt(code_token, code):
             return client.post(
-                reverse('auth'),
-                data={'code_token': code_token, 'code': code})
+                reverse('auth'), data={'code_token': code_token, 'code': code}
+            )
 
         # Note: Default throttle wait time is 2 seconds
 
@@ -123,17 +137,19 @@ def test_code_token_throttling():
         assert time.time() == 1577970001.0
         result0 = attempt(code_token1, incorrect_codes[0])
         assert result0.data == {
-            'detail': 'Incorrect authentication credentials.'}
+            'detail': 'Incorrect authentication credentials.'
+        }
         assert result0.status_code == status.HTTP_401_UNAUTHORIZED
 
         # Try 2 on code_token1, after 0.5s.  Should be throttled
         frozen_datetime.tick(delta=datetime.timedelta(seconds=0.5))
         assert time.time() == 1577970001.5
         result1 = attempt(code_token1, incorrect_codes[1])
+        expected_detail = (
+            'Request was throttled. Expected available in {} seconds.'
+        ).format(math.ceil(2))
         assert result1.data == {
-            'detail': (
-                'Request was throttled. Expected available in {} seconds.'
-                .format(math.ceil(2)))
+            'detail': expected_detail,
         }
         assert result1.status_code == status.HTTP_429_TOO_MANY_REQUESTS
 
@@ -143,7 +159,8 @@ def test_code_token_throttling():
         assert time.time() == 1577970003.25
         result2 = attempt(code_token1, incorrect_codes[2])
         assert result2.data == {
-            'detail': 'Incorrect authentication credentials.'}
+            'detail': 'Incorrect authentication credentials.'
+        }
         assert result2.status_code == status.HTTP_401_UNAUTHORIZED
 
         # Try 4 on code_token1, after 0.75s.  Should be throttled.
@@ -156,7 +173,8 @@ def test_code_token_throttling():
         assert time.time() == 1577970004.0
         result4 = attempt(code_token2, incorrect_codes[4])
         assert result4.data == {
-            'detail': 'Incorrect authentication credentials.'}
+            'detail': 'Incorrect authentication credentials.'
+        }
         assert result4.status_code == status.HTTP_401_UNAUTHORIZED
 
         # Try without a code token.  Should NOT be throttled.
@@ -171,5 +189,6 @@ def test_code_token_throttling():
         assert time.time() == 1577970005.5
         result5 = attempt(code_token1, incorrect_codes[5])
         assert result5.data == {
-            'detail': 'Incorrect authentication credentials.'}
+            'detail': 'Incorrect authentication credentials.'
+        }
         assert result5.status_code == status.HTTP_401_UNAUTHORIZED

@@ -48,7 +48,8 @@ def test_create_code_token_with_no_email():
     with pytest.raises(VerificationCodeSendingFailed) as exc_info:
         manager.create_code_token(get_user(username='no-email', email=''))
     assert str(exc_info.value) == (
-        'Verification code sending failed: No e-mail address known')
+        'Verification code sending failed: No e-mail address known'
+    )
     assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
     # Check sent mails
@@ -63,7 +64,8 @@ def test_create_code_token_with_email_send_error(mocked_send_mail):
     with pytest.raises(VerificationCodeSendingFailed) as exc_info:
         manager.create_code_token(get_user())
     assert str(exc_info.value) == (
-        'Verification code sending failed: Unable to send e-mail')
+        'Verification code sending failed: Unable to send e-mail'
+    )
     assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
     assert mocked_send_mail.call_count == 1
@@ -109,9 +111,11 @@ def test_check_code_token_and_code_with_invalid_code():
 
 
 @pytest.mark.django_db
-@OverrideJwt2faSettings({
-    'CODE_EXPIRATION_TIME': datetime.timedelta(seconds=-1),
-})
+@OverrideJwt2faSettings(
+    {
+        'CODE_EXPIRATION_TIME': datetime.timedelta(seconds=-1),
+    }
+)
 def test_check_code_token_and_code_with_expired_token():
     manager = CodeTokenManager()
     token = manager.create_code_token(get_user())

@@ -101,7 +101,8 @@ class CodeTokenManager(object):
                 jwt=token,
                 key=api_settings.CODE_TOKEN_SECRET_KEY,
                 verify=True,
-                algorithms=[self.jwt_algorithm])
+                algorithms=[self.jwt_algorithm],
+            )
         except jwt.ExpiredSignatureError:
             raise exceptions.PermissionDenied(
                 _("Signature has expired.")

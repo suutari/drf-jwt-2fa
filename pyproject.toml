@@ -69,6 +69,9 @@ line-length = 79
 target-version = "py310"
 extend-exclude = [".tox", "dist", "venv", ".venv"]
 
+[tool.ruff.format]
+quote-style = "preserve"
+
 [tool.ruff.lint]
 select = ["B", "C", "E", "F", "I", "S", "T20", "W"]
 

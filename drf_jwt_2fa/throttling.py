@@ -24,7 +24,8 @@ class CodeTokenThrottler(throttling.SimpleRateThrottle):
 
     def get_cache_key(self, request, view):
         return self.cache_key_template.format(
-            ident_hash=sha1_string(self.get_ident(request)))
+            ident_hash=sha1_string(self.get_ident(request))
+        )
 
 
 class AuthTokenThrottler(throttling.BaseThrottle):
@@ -48,8 +49,13 @@ class AuthTokenThrottler(throttling.BaseThrottle):
 
     def get_cache_key(self, request, view):
         code_token = request.data.get('code_token')
-        return self.cache_key_template.format(
-            code_token_hash=sha1_string(code_token)) if code_token else None
+        return (
+            self.cache_key_template.format(
+                code_token_hash=sha1_string(code_token)
+            )
+            if code_token
+            else None
+        )
 
     @property
     def retry_wait_seconds(self):
