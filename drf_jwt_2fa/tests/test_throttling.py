@@ -30,7 +30,7 @@ def test_code_token_throttler_parse_rate(num, duration_str, duration_seconds):
     rate_string = str(num) + '/' + duration_str if num else None
     expected_result = (num, duration_seconds) if num else (None, None)
     throttler = CodeTokenThrottler()
-    throttler.parse_rate(rate_string) == expected_result
+    assert throttler.parse_rate(rate_string) == expected_result
 
 
 def get_code_token_throttler(cache):

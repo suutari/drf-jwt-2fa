@@ -62,7 +62,7 @@ class AuthTokenSerializer(Jwt2faSerializer):
         try:
             user = user_model.objects.get_by_natural_key(username)
         except user_model.DoesNotExist:
-            raise exceptions.AuthenticationFailed()
+            raise exceptions.AuthenticationFailed() from None
         check_user_validity(user)
         return user
 

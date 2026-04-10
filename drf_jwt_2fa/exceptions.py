@@ -9,5 +9,8 @@ class VerificationCodeSendingFailed(exceptions.APIException):
 
     def __init__(self, reason, detail=None, code=None, *args, **kwargs):
         super(VerificationCodeSendingFailed, self).__init__(
+            *args,
             detail=(detail or self.default_detail.format(reason=reason)),
-            code=code, *args, **kwargs)
+            code=code,
+            **kwargs,
+        )

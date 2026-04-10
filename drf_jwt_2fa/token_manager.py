@@ -38,7 +38,7 @@ class CodeTokenManager(object):
         try:
             self.send_verification_code(user, code)
         except CodeSendingFailed as error:
-            raise VerificationCodeSendingFailed(error)
+            raise VerificationCodeSendingFailed(error) from error
         return self.encode_token(payload)
 
     def check_code_token_and_code(self, token, code):
@@ -103,9 +103,11 @@ class CodeTokenManager(object):
                 verify=True,
                 algorithms=[self.jwt_algorithm])
         except jwt.ExpiredSignatureError:
-            raise exceptions.PermissionDenied(_("Signature has expired."))
+            raise exceptions.PermissionDenied(
+                _("Signature has expired.")
+            ) from None
         except jwt.DecodeError:
-            raise exceptions.AuthenticationFailed()
+            raise exceptions.AuthenticationFailed() from None
 
     def hash_verification_code(self, code):
         nonce = get_random_string(length=10)

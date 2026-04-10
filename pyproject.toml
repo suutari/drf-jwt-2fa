@@ -70,7 +70,12 @@ target-version = "py310"
 extend-exclude = [".tox", "dist", "venv", ".venv"]
 
 [tool.ruff.lint]
-select = ["C", "E", "F", "I", "T20", "W"]
+select = ["B", "C", "E", "F", "I", "S", "T20", "W"]
+
+[tool.ruff.lint.per-file-ignores]
+"conftest.py" = ["S101"]  # Allow assert
+"drf_jwt_2fa/tests/**/*.py" = ["S101", "S106", "S107", "S301"]
+"test_settings.py" = ["S105"]  # SECRET_KEY
 
 [tool.ruff.lint.isort]
 known-first-party = ["drf_jwt_2fa"]
