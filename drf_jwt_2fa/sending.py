@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.core.mail import send_mail
 from django.utils.translation import gettext as _
 
@@ -31,7 +30,7 @@ def send_verification_code_via_email(user, code):
     messages_sent = send_mail(
         subject=subject_template.format(code=code),
         message=body_template.format(code=code),
-        from_email=settings.DEFAULT_FROM_EMAIL,
+        from_email=api_settings.EMAIL_SENDER_FROM_ADDRESS,
         recipient_list=[user_email_address],
         fail_silently=True,
     )

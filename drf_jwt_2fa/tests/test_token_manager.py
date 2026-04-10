@@ -40,6 +40,23 @@ def test_create_code_token():
 
 
 @pytest.mark.django_db
+@OverrideJwt2faSettings(
+    {
+        "EMAIL_SENDER_FROM_ADDRESS": "no-reply@example.com",
+    }
+)
+def test_create_code_token_uses_configured_from_address():
+    manager = CodeTokenManager()
+
+    mail_outbox_size_before = len(mail.outbox)
+
+    manager.create_code_token(get_user())
+
+    assert len(mail.outbox) == mail_outbox_size_before + 1
+    assert mail.outbox[-1].from_email == "no-reply@example.com"
+
+
+@pytest.mark.django_db
 def test_create_code_token_with_no_email():
     manager = CodeTokenManager()
 
