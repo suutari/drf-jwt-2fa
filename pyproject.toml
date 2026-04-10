@@ -41,15 +41,12 @@ homepage = "https://github.com/suutari/drf-jwt-2fa"
 
 [dependency-groups]
 dev = [
-    "flake8>=3.9.2",
-    "flake8-isort>=4.2.0",
-    "flake8-print>=3.1.4",
     "freezegun>=1.1.0",
     "mock>=3.0.5",
-    "pep8-naming>=0.13.1",
     "pytest>=6.1.2",
     "pytest-cov>=2.12.1",
     "pytest-django>=4.5.2",
+    "ruff>=0.15.10",
     "tox>=3.28.0",
     "tox-uv-bare>=1.33.4",
 ]
@@ -66,3 +63,17 @@ branch = true
 [tool.coverage.report]
 precision = 1
 show_missing = true
+
+[tool.ruff]
+line-length = 79
+target-version = "py310"
+extend-exclude = [".tox", "dist", "venv", ".venv"]
+
+[tool.ruff.lint]
+select = ["C", "E", "F", "I", "T20", "W"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["drf_jwt_2fa"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10

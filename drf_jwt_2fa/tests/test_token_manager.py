@@ -13,8 +13,12 @@ from drf_jwt_2fa.token_manager import CodeTokenManager
 
 from .factories import get_user
 from .utils import (
-    OverrideJwt2faSettings, check_code_token, decode_jwt_part, encode_jwt_part,
-    get_verification_code_from_mailbox)
+    OverrideJwt2faSettings,
+    check_code_token,
+    decode_jwt_part,
+    encode_jwt_part,
+    get_verification_code_from_mailbox,
+)
 
 
 @pytest.mark.django_db

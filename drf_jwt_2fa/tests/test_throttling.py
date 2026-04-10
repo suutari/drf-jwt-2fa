@@ -17,7 +17,10 @@ from drf_jwt_2fa.throttling import CodeTokenThrottler
 
 from .test_endpoints import get_code_token
 from .utils import (
-    OverrideJwt2faSettings, get_api_client, get_verification_code_from_mailbox)
+    OverrideJwt2faSettings,
+    get_api_client,
+    get_verification_code_from_mailbox,
+)
 
 
 @pytest.mark.parametrize('num', [None, 1, 42, 938383])

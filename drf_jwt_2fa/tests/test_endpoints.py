@@ -6,8 +6,11 @@ from rest_framework import status
 
 from .factories import get_user
 from .utils import (
-    check_auth_token, check_code_token, get_api_client,
-    get_verification_code_from_mailbox)
+    check_auth_token,
+    check_code_token,
+    get_api_client,
+    get_verification_code_from_mailbox,
+)
 
 
 @pytest.mark.django_db
