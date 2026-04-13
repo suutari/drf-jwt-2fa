@@ -70,7 +70,7 @@ def check_code_token(token, username='testuser', verify=True):
 def check_token_basics_and_get_payload(token):
     assert token
     assert len(token.split('.')) == 3
-    (header_part, payload_part, signature_part) = token.split('.')
+    (header_part, payload_part, _signature) = token.split('.')
     assert decode_jwt_part(header_part) == {'alg': 'HS256', 'typ': 'JWT'}
     return decode_jwt_part(payload_part)
 
