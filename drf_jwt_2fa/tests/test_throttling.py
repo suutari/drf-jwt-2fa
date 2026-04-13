@@ -1,16 +1,14 @@
-from __future__ import unicode_literals
-
 import datetime
 import math
 import pickle
 import time
+from unittest.mock import patch
 
 import pytest
 from django.core.cache.backends.locmem import LocMemCache
 from django.test.client import RequestFactory
 from django.urls import reverse
 from freezegun import freeze_time
-from mock import patch
 from rest_framework import status
 
 from drf_jwt_2fa.throttling import CodeTokenThrottler
@@ -45,7 +43,7 @@ def get_code_token_throttler(cache):
 @OverrideJwt2faSettings({'CODE_TOKEN_THROTTLE_RATE': '2/10s'})
 def test_code_token_throttler():
     with patch('drf_jwt_2fa.throttling.sha1_string') as mocked_sha1_string:
-        mocked_sha1_string.side_effect = lambda x: 'SHA1({})'.format(x)
+        mocked_sha1_string.side_effect = lambda x: f"SHA1({x})"
         check_code_token_throttler(RequestFactory())
 
 
@@ -146,8 +144,9 @@ def test_code_token_throttling():
         assert time.time() == 1577970001.5
         result1 = attempt(code_token1, incorrect_codes[1])
         expected_detail = (
-            'Request was throttled. Expected available in {} seconds.'
-        ).format(math.ceil(2))
+            f"Request was throttled. Expected available in "
+            f"{math.ceil(2)} seconds."
+        )
         assert result1.data == {
             'detail': expected_detail,
         }

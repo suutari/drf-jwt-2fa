@@ -95,7 +95,7 @@ def encode_jwt_part(data):
 
 class OverrideJwt2faSettings(TestContextDecorator):
     def __init__(self, values):
-        super(OverrideJwt2faSettings, self).__init__()
+        super().__init__()
         self.override_settings = override_settings(JWT2FA_AUTH=values)
 
     def enable(self):

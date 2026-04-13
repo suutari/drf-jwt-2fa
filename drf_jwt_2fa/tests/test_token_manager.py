@@ -1,11 +1,9 @@
-from __future__ import unicode_literals
-
 import datetime
 import time
+from unittest.mock import patch
 
 import pytest
 from django.core import mail
-from mock import patch
 from rest_framework import exceptions, status
 
 from drf_jwt_2fa.exceptions import VerificationCodeSendingError

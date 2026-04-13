@@ -11,7 +11,7 @@ from .sending import CodeSendingError, send_verification_code
 from .settings import api_settings
 
 
-class CodeTokenManager(object):
+class CodeTokenManager:
     jwt_algorithm = 'HS256'
 
     @property

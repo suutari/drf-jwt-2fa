@@ -13,11 +13,11 @@ class Jwt2faSerializer(serializers.Serializer):
     token_manager_class = CodeTokenManager
 
     def __init__(self, *args, **kwargs):
-        super(Jwt2faSerializer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.token_manager = self.token_manager_class()
 
     def validate(self, attrs):
-        validated_attrs = super(Jwt2faSerializer, self).validate(attrs)
+        validated_attrs = super().validate(attrs)
         user = self._authenticate(validated_attrs)
         return self._create_tokens(user)
 
