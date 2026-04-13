@@ -3,7 +3,6 @@ import json
 import time
 
 import jwt
-import six
 from django.conf import settings
 from django.core import mail
 from django.test import override_settings
@@ -12,8 +11,6 @@ from rest_framework.test import APIClient
 from rest_framework_simplejwt.settings import api_settings as jwt_settings
 
 from drf_jwt_2fa.settings import api_settings
-
-str = six.text_type  # Make str be unicode on Python 2 too
 
 
 def get_api_client():
