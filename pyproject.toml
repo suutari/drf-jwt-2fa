@@ -74,7 +74,30 @@ extend-exclude = [".tox", "dist", "venv", ".venv"]
 quote-style = "preserve"
 
 [tool.ruff.lint]
-select = ["B", "C", "E", "F", "I", "S", "T20", "W"]
+preview = true
+explicit-preview-rules = true
+extend-select = [
+    "F", # linting failures (pyflakes)
+    "W", # style warnings (pycodestyle)
+    "E", # style errors (pycodestyle)
+    "I", # import ordering (isort)
+    "C", # code complexity (mccabe)
+    "N", # naming conventions (pep8-naming)
+    "UP", # upgrade to newer Python syntax (pyupgrade)
+    "B", # likely bugs and design problems (flake8-bugbear)
+    "DJ", # Django checks (flake8-django)
+    "S", # security checks (flake8-bandit)
+    "EXE", # executable permissions and shebangs (flake8-executable)
+    "LOG", # usage of stdlib logging module (flake8-logging)
+    "G", # logging format (flake8-logging-format)
+    "FURB", # refurbishing and modernizing (refurb)
+    "RUF", # Ruff-specific rules
+    "TRY", # Exception Handling AntiPatterns (tryceratops)
+    "T20", # print statements (flake8-print)
+]
+ignore = [
+    "TRY003",  # Avoid specifying long messages outside of the exception class
+]
 
 [tool.ruff.lint.per-file-ignores]
 "conftest.py" = ["S101"]  # Allow assert
