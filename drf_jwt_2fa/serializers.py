@@ -28,8 +28,8 @@ class CodeTokenSerializer(Jwt2faSerializer):
 
     def _authenticate(self, attrs):
         credentials = {
-            'username': attrs.get('username'),
-            'password': attrs.get('password'),
+            "username": attrs.get("username"),
+            "password": attrs.get("password"),
         }
         user = authenticate(**credentials)
         if not user:
@@ -39,7 +39,7 @@ class CodeTokenSerializer(Jwt2faSerializer):
 
     def _create_tokens(self, user):
         return {
-            'token': self.token_manager.create_code_token(user),
+            "token": self.token_manager.create_code_token(user),
         }
 
 
@@ -48,8 +48,8 @@ class AuthTokenSerializer(Jwt2faSerializer):
     code = PasswordField(write_only=True, required=True)
 
     def _authenticate(self, attrs):
-        code_token = attrs.get('code_token')
-        code = attrs.get('code')
+        code_token = attrs.get("code_token")
+        code = attrs.get("code")
         username = self._check_code_token_and_code(code_token, code)
         user = self._get_user(username)
         return user

@@ -30,9 +30,9 @@ def test_create_code_token():
 
     # Check sent mails
     assert len(mail.outbox) == mail_outbox_size_before + 1
-    assert mail.outbox[-1].subject.endswith(': Your verification code')
-    assert mail.outbox[-1].from_email == 'webmaster@localhost'
-    assert mail.outbox[-1].to == ['testuser@localhost']
+    assert mail.outbox[-1].subject.endswith(": Your verification code")
+    assert mail.outbox[-1].from_email == "webmaster@localhost"
+    assert mail.outbox[-1].to == ["testuser@localhost"]
 
     # Check the generated token
     check_code_token(token)
@@ -62,9 +62,9 @@ def test_create_code_token_with_no_email():
     mail_outbox_size_before = len(mail.outbox)
 
     with pytest.raises(VerificationCodeSendingError) as exc_info:
-        manager.create_code_token(get_user(username='no-email', email=''))
+        manager.create_code_token(get_user(username="no-email", email=""))
     assert str(exc_info.value) == (
-        'Verification code sending failed: No e-mail address known'
+        "Verification code sending failed: No e-mail address known"
     )
     assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
@@ -73,14 +73,14 @@ def test_create_code_token_with_no_email():
 
 
 @pytest.mark.django_db
-@patch('drf_jwt_2fa.sending.send_mail', return_value=0)
+@patch("drf_jwt_2fa.sending.send_mail", return_value=0)
 def test_create_code_token_with_email_send_error(mocked_send_mail):
     manager = CodeTokenManager()
 
     with pytest.raises(VerificationCodeSendingError) as exc_info:
         manager.create_code_token(get_user())
     assert str(exc_info.value) == (
-        'Verification code sending failed: Unable to send e-mail'
+        "Verification code sending failed: Unable to send e-mail"
     )
     assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
@@ -116,11 +116,11 @@ def test_create_code_token_with_custom_sender_raising_code_sending_error():
     def failing_code_sender(user, code):
         raise CodeSendingError("Custom code sending error")
 
-    with OverrideJwt2faSettings({'CODE_SENDER': failing_code_sender}):
+    with OverrideJwt2faSettings({"CODE_SENDER": failing_code_sender}):
         manager = CodeTokenManager()
         with pytest.raises(VerificationCodeSendingError) as exc_info:
             manager.create_code_token(get_user())
-        assert 'Custom code sending error' in str(exc_info.value)
+        assert "Custom code sending error" in str(exc_info.value)
         assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
 
@@ -130,7 +130,7 @@ def test_check_code_token_and_code_success():
     token = manager.create_code_token(get_user())
     code = get_verification_code_from_mailbox()
     username = manager.check_code_token_and_code(token, code)
-    assert username == 'testuser'
+    assert username == "testuser"
 
 
 @pytest.mark.django_db
@@ -138,14 +138,14 @@ def test_check_code_token_and_code_with_invalid_token():
     manager = CodeTokenManager()
     token = manager.create_code_token(get_user())
     code = get_verification_code_from_mailbox()
-    (header, payload_before, signature) = token.split('.')
+    (header, payload_before, signature) = token.split(".")
     payload = decode_jwt_part(payload_before)
-    payload['usr'] = 'somebody-else'
-    new_token = header + '.' + encode_jwt_part(payload) + '.' + signature
-    check_code_token(new_token, username='somebody-else', verify=False)
+    payload["usr"] = "somebody-else"
+    new_token = header + "." + encode_jwt_part(payload) + "." + signature
+    check_code_token(new_token, username="somebody-else", verify=False)
     with pytest.raises(Exception) as exc_info:
         manager.check_code_token_and_code(new_token, code)
-    assert str(exc_info.value) == 'Incorrect authentication credentials.'
+    assert str(exc_info.value) == "Incorrect authentication credentials."
     assert isinstance(exc_info.value, exceptions.AuthenticationFailed)
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
@@ -156,25 +156,25 @@ def test_check_code_token_and_code_with_invalid_code():
     token = manager.create_code_token(get_user())
     correct_code = get_verification_code_from_mailbox()
     assert len(correct_code) == 7
-    invalid_code = '1234567' if correct_code != '1234567' else '7654321'
+    invalid_code = "1234567" if correct_code != "1234567" else "7654321"
     with pytest.raises(exceptions.AuthenticationFailed) as exc_info:
         manager.check_code_token_and_code(token, invalid_code)
-    assert str(exc_info.value) == 'Incorrect authentication credentials.'
+    assert str(exc_info.value) == "Incorrect authentication credentials."
     assert exc_info.value.status_code == status.HTTP_401_UNAUTHORIZED
 
 
 @pytest.mark.django_db
 @OverrideJwt2faSettings(
     {
-        'CODE_EXPIRATION_TIME': datetime.timedelta(seconds=-1),
+        "CODE_EXPIRATION_TIME": datetime.timedelta(seconds=-1),
     }
 )
 def test_check_code_token_and_code_with_expired_token():
     manager = CodeTokenManager()
     token = manager.create_code_token(get_user())
-    assert decode_jwt_part(token.split('.')[1])['exp'] < time.time()
+    assert decode_jwt_part(token.split(".")[1])["exp"] < time.time()
     code = get_verification_code_from_mailbox()
     with pytest.raises(exceptions.PermissionDenied) as exc_info:
         manager.check_code_token_and_code(token, code)
-    assert str(exc_info.value) == 'Signature has expired.'
+    assert str(exc_info.value) == "Signature has expired."
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN

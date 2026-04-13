@@ -16,7 +16,7 @@ def check_user_validity(user):
 
 
 def _unpadded_encode(data, encoder=base64.b64encode):
-    return encoder(data).rstrip(b'=').decode('ascii')
+    return encoder(data).rstrip(b"=").decode("ascii")
 
 
 def hash_string(string, hasher=hashlib.sha256, formatter=_unpadded_encode):
@@ -33,7 +33,7 @@ def hash_string(string, hasher=hashlib.sha256, formatter=_unpadded_encode):
     :type formatter: Callable[[bytes], str]
     :rtype: str
     """
-    return formatter(hasher(string.encode('utf-8')).digest())
+    return formatter(hasher(string.encode("utf-8")).digest())
 
 
 def sha1_string(string, formatter=_unpadded_encode):

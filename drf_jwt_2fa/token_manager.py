@@ -12,7 +12,7 @@ from .settings import api_settings
 
 
 class CodeTokenManager:
-    jwt_algorithm = 'HS256'
+    jwt_algorithm = "HS256"
 
     @property
     def code_length(self):
@@ -58,11 +58,11 @@ class CodeTokenManager:
         :return: Username of the verified user
         """
         payload = self.decode_token(token)
-        hashed_code = payload.get('vch')
-        nonce = payload.get('vcn')
+        hashed_code = payload.get("vch")
+        nonce = payload.get("vcn")
         if not self.is_verification_code_ok(code, nonce, hashed_code):
             raise exceptions.AuthenticationFailed()
-        return payload.get('usr')
+        return payload.get("usr")
 
     def generate_verification_code(self):
         return get_random_string(self.code_length, self.code_chars)
@@ -80,11 +80,11 @@ class CodeTokenManager:
         expiration_seconds = int(expiration_time.total_seconds())
         (hashed_code, nonce) = self.hash_verification_code(code)
         return {
-            'usr': user.get_username(),
-            'vch': hashed_code,  # Verification Code Hash
-            'vcn': nonce,  # Verification Code Nonce
-            'iat': now,
-            'exp': now + expiration_seconds,
+            "usr": user.get_username(),
+            "vch": hashed_code,  # Verification Code Hash
+            "vcn": nonce,  # Verification Code Nonce
+            "iat": now,
+            "exp": now + expiration_seconds,
         }
 
     def send_verification_code(self, user, code):

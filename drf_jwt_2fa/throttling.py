@@ -8,7 +8,7 @@ from .utils import sha1_string
 
 
 class CodeTokenThrottler(throttling.SimpleRateThrottle):
-    cache_key_template = 'drf_jwt_2fa-tc-{ident_hash}'
+    cache_key_template = "drf_jwt_2fa-tc-{ident_hash}"
 
     @property
     def rate(self):
@@ -17,9 +17,9 @@ class CodeTokenThrottler(throttling.SimpleRateThrottle):
     def parse_rate(self, rate):
         if not rate:
             return (None, None)
-        (num_requests_str, period_str) = rate.split('/')
-        period_num = int(period_str[:-1] or '1')
-        period_unit = {'s': 1, 'm': 60, 'h': 3600, 'd': 86400}[period_str[-1]]
+        (num_requests_str, period_str) = rate.split("/")
+        period_num = int(period_str[:-1] or "1")
+        period_unit = {"s": 1, "m": 60, "h": 3600, "d": 86400}[period_str[-1]]
         return (int(num_requests_str), period_num * period_unit)
 
     def get_cache_key(self, request, view):
@@ -30,7 +30,7 @@ class CodeTokenThrottler(throttling.SimpleRateThrottle):
 
 class AuthTokenThrottler(throttling.BaseThrottle):
     cache = default_cache
-    cache_key_template = 'drf_jwt_2fa-ta-{code_token_hash}'
+    cache_key_template = "drf_jwt_2fa-ta-{code_token_hash}"
 
     def allow_request(self, request, view):
         key = self.get_cache_key(request, view)
@@ -48,7 +48,7 @@ class AuthTokenThrottler(throttling.BaseThrottle):
         return self.wait_time
 
     def get_cache_key(self, request, view):
-        code_token = request.data.get('code_token')
+        code_token = request.data.get("code_token")
         return (
             self.cache_key_template.format(
                 code_token_hash=sha1_string(code_token)

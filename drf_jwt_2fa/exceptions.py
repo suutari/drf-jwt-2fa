@@ -4,7 +4,7 @@ from rest_framework import exceptions, status
 
 class VerificationCodeSendingError(exceptions.APIException):
     status_code = status.HTTP_501_NOT_IMPLEMENTED
-    default_code = 'verification_code_sending_failed'
+    default_code = "verification_code_sending_failed"
     default_detail = _("Verification code sending failed: {reason}")
 
     def __init__(self, reason, detail=None, code=None, **kwargs):

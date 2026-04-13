@@ -24,7 +24,7 @@ def send_verification_code(user, code):
 
 
 def send_verification_code_via_email(user, code):
-    user_email_address = getattr(user, 'email', None)
+    user_email_address = getattr(user, "email", None)
 
     if not user_email_address:
         raise CodeSendingError(_("No e-mail address known"))
