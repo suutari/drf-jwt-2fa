@@ -63,6 +63,7 @@ branch = true
 [tool.coverage.report]
 precision = 1
 show_missing = true
+omit = ["conftest.py"]
 
 [tool.ruff]
 line-length = 79
