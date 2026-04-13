@@ -45,4 +45,4 @@ IMPORT_STRINGS = [
     'CODE_SENDER',
 ]
 
-api_settings = APISettings(USER_SETTINGS, DEFAULTS, IMPORT_STRINGS)
+api_settings = APISettings(USER_SETTINGS, DEFAULTS, IMPORT_STRINGS)  # type: ignore
