@@ -6,12 +6,12 @@ from .throttling import AuthTokenThrottler, CodeTokenThrottler
 
 class ObtainCodeToken(jwt_views.TokenObtainPairView):
     serializer_class = serializers.CodeTokenSerializer
-    throttle_classes = [CodeTokenThrottler]
+    throttle_classes = (CodeTokenThrottler,)
 
 
 class ObtainAuthToken(jwt_views.TokenObtainPairView):
     serializer_class = serializers.AuthTokenSerializer
-    throttle_classes = [AuthTokenThrottler]
+    throttle_classes = (AuthTokenThrottler,)
 
 
 class RefreshAuthToken(jwt_views.TokenRefreshView):
