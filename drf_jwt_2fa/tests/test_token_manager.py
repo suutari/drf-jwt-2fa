@@ -8,7 +8,8 @@ from django.core import mail
 from mock import patch
 from rest_framework import exceptions, status
 
-from drf_jwt_2fa.exceptions import VerificationCodeSendingFailed
+from drf_jwt_2fa.exceptions import VerificationCodeSendingError
+from drf_jwt_2fa.sending import CodeSendingError
 from drf_jwt_2fa.token_manager import CodeTokenManager
 
 from .factories import get_user
@@ -62,7 +63,7 @@ def test_create_code_token_with_no_email():
 
     mail_outbox_size_before = len(mail.outbox)
 
-    with pytest.raises(VerificationCodeSendingFailed) as exc_info:
+    with pytest.raises(VerificationCodeSendingError) as exc_info:
         manager.create_code_token(get_user(username='no-email', email=''))
     assert str(exc_info.value) == (
         'Verification code sending failed: No e-mail address known'
@@ -78,7 +79,7 @@ def test_create_code_token_with_no_email():
 def test_create_code_token_with_email_send_error(mocked_send_mail):
     manager = CodeTokenManager()
 
-    with pytest.raises(VerificationCodeSendingFailed) as exc_info:
+    with pytest.raises(VerificationCodeSendingError) as exc_info:
         manager.create_code_token(get_user())
     assert str(exc_info.value) == (
         'Verification code sending failed: Unable to send e-mail'
@@ -86,6 +87,43 @@ def test_create_code_token_with_email_send_error(mocked_send_mail):
     assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
     assert mocked_send_mail.call_count == 1
+
+
+@pytest.mark.django_db
+def test_create_code_token_with_custom_sender_raising_unknown_error(caplog):
+    def failing_code_sender(user, code):
+        raise ValueError("Custom error")
+
+    with OverrideJwt2faSettings({"CODE_SENDER": failing_code_sender}):
+        manager = CodeTokenManager()
+        with (
+            caplog.at_level("ERROR", logger="drf_jwt_2fa.sending"),
+            pytest.raises(VerificationCodeSendingError) as exc_info,
+        ):
+            manager.create_code_token(get_user())
+
+    error = exc_info.value
+    assert str(error) == "Verification code sending failed: Unknown error"
+    assert error.status_code == status.HTTP_501_NOT_IMPLEMENTED
+
+    logged = caplog.records[0]
+    assert logged.message == "Verification code sending failed"
+    assert logged.exc_text.splitlines()[0].startswith("Traceback")
+    assert "in failing_code_sender" in logged.exc_text
+    assert logged.exc_text.splitlines()[-1] == "ValueError: Custom error"
+
+
+@pytest.mark.django_db
+def test_create_code_token_with_custom_sender_raising_code_sending_error():
+    def failing_code_sender(user, code):
+        raise CodeSendingError("Custom code sending error")
+
+    with OverrideJwt2faSettings({'CODE_SENDER': failing_code_sender}):
+        manager = CodeTokenManager()
+        with pytest.raises(VerificationCodeSendingError) as exc_info:
+            manager.create_code_token(get_user())
+        assert 'Custom code sending error' in str(exc_info.value)
+        assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
 
 @pytest.mark.django_db

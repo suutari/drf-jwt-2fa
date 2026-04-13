@@ -1,23 +1,33 @@
+import logging
+
 from django.core.mail import send_mail
 from django.utils.translation import gettext as _
 
 from .settings import api_settings
 
+LOG = logging.getLogger(__name__)
 
-class CodeSendingFailed(Exception):
+
+class CodeSendingError(Exception):
     pass
 
 
 def send_verification_code(user, code):
     sender = api_settings.CODE_SENDER
-    return sender(user, code)
+    try:
+        return sender(user, code)
+    except CodeSendingError:
+        raise
+    except Exception as error:
+        LOG.exception("Verification code sending failed")
+        raise CodeSendingError(_("Unknown error")) from error
 
 
 def send_verification_code_via_email(user, code):
     user_email_address = getattr(user, 'email', None)
 
     if not user_email_address:
-        raise CodeSendingFailed(_("No e-mail address known"))
+        raise CodeSendingError(_("No e-mail address known"))
 
     subject_template = _(
         api_settings.EMAIL_SENDER_SUBJECT_OVERRIDE
@@ -36,4 +46,4 @@ def send_verification_code_via_email(user, code):
     )
 
     if not messages_sent:
-        raise CodeSendingFailed(_("Unable to send e-mail"))
+        raise CodeSendingError(_("Unable to send e-mail"))

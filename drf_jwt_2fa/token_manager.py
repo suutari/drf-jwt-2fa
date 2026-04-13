@@ -6,8 +6,8 @@ from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
 from rest_framework import exceptions
 
-from .exceptions import VerificationCodeSendingFailed
-from .sending import CodeSendingFailed, send_verification_code
+from .exceptions import VerificationCodeSendingError
+from .sending import CodeSendingError, send_verification_code
 from .settings import api_settings
 
 
@@ -37,8 +37,8 @@ class CodeTokenManager(object):
         payload = self.get_token_payload(user, code)
         try:
             self.send_verification_code(user, code)
-        except CodeSendingFailed as error:
-            raise VerificationCodeSendingFailed(error) from error
+        except CodeSendingError as error:
+            raise VerificationCodeSendingError(error) from error
         return self.encode_token(payload)
 
     def check_code_token_and_code(self, token, code):
