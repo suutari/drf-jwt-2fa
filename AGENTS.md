@@ -7,7 +7,8 @@ pytest                       # Run tests directly without Tox
 pytest drf_jwt_2fa/TESTFILE  # Run tests from specified test file
 tox                          # Run all tests with coverage (Python/Django matrix)
 tox -e py314-django60        # Run tests with Python 3.14 and Django 6.0
-tox -e style                 # Run ruff linting
+tox -e lint                  # Run Ruff linting
+tox -e style                 # Run Ruff style checks
 tox -e uvlock                # Check uv.lock is up to date
 ```
 
@@ -28,5 +29,5 @@ tox -e uvlock                # Check uv.lock is up to date
 ## Testing Notes
 
 - Test only with Pytest without Tox unless explicitly asked for full test matrix
-- Check code style and linting with `tox -e style`
+- Check code style and linting with `tox -e style,lint`
 - Tests use pytest-django with SQLite
