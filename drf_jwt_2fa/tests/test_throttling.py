@@ -40,7 +40,7 @@ def get_code_token_throttler(cache):
     return throttler
 
 
-@OverrideJwt2faSettings({"CODE_TOKEN_THROTTLE_RATE": "2/10s"})
+@OverrideJwt2faSettings(CODE_TOKEN_THROTTLE_RATE="2/10s")
 def test_code_token_throttler():
     with patch("drf_jwt_2fa.throttling.sha1_string") as mocked_sha1_string:
         mocked_sha1_string.side_effect = lambda x: f"SHA1({x})"

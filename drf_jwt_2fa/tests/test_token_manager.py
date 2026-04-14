@@ -39,11 +39,7 @@ def test_create_code_token():
 
 
 @pytest.mark.django_db
-@OverrideJwt2faSettings(
-    {
-        "EMAIL_SENDER_FROM_ADDRESS": "no-reply@example.com",
-    }
-)
+@OverrideJwt2faSettings(EMAIL_SENDER_FROM_ADDRESS="no-reply@example.com")
 def test_create_code_token_uses_configured_from_address():
     manager = CodeTokenManager()
 
@@ -92,7 +88,7 @@ def test_create_code_token_with_custom_sender_raising_unknown_error(caplog):
     def failing_code_sender(user, code):
         raise ValueError("Custom error")
 
-    with OverrideJwt2faSettings({"CODE_SENDER": failing_code_sender}):
+    with OverrideJwt2faSettings(CODE_SENDER=failing_code_sender):
         manager = CodeTokenManager()
         with (
             caplog.at_level("ERROR", logger="drf_jwt_2fa.sending"),
@@ -116,7 +112,7 @@ def test_create_code_token_with_custom_sender_raising_code_sending_error():
     def failing_code_sender(user, code):
         raise CodeSendingError("Custom code sending error")
 
-    with OverrideJwt2faSettings({"CODE_SENDER": failing_code_sender}):
+    with OverrideJwt2faSettings(CODE_SENDER=failing_code_sender):
         manager = CodeTokenManager()
         with pytest.raises(VerificationCodeSendingError) as exc_info:
             manager.create_code_token(get_user())
@@ -164,11 +160,7 @@ def test_check_code_token_and_code_with_invalid_code():
 
 
 @pytest.mark.django_db
-@OverrideJwt2faSettings(
-    {
-        "CODE_EXPIRATION_TIME": datetime.timedelta(seconds=-1),
-    }
-)
+@OverrideJwt2faSettings(CODE_EXPIRATION_TIME=datetime.timedelta(seconds=-1))
 def test_check_code_token_and_code_with_expired_token():
     manager = CodeTokenManager()
     token = manager.create_code_token(get_user())
