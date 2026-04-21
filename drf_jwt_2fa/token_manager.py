@@ -15,7 +15,7 @@ from .exceptions import (
 )
 from .sending import CodeSendingError, send_verification_code
 from .settings import api_settings
-from .utils import sha1_string
+from .utils import get_code_token_hash
 
 
 class CodeTokenManager:
@@ -103,7 +103,7 @@ class CodeTokenManager:
 
     def _auth_attempts_cache_key(self, token):
         return self._auth_attempts_cache_key_template.format(
-            token_hash=sha1_string(token)
+            token_hash=get_code_token_hash(token)
         )
 
     def _check_auth_attempts_not_exceeded(self, token, payload):

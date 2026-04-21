@@ -1,10 +1,11 @@
 import time
+from hashlib import sha256 as ident_hasher
 
 from django.core.cache import cache as default_cache
 from rest_framework import throttling
 
 from .settings import api_settings
-from .utils import sha1_string
+from .utils import get_code_token_hash
 
 
 class CodeTokenThrottler(throttling.SimpleRateThrottle):
@@ -23,9 +24,9 @@ class CodeTokenThrottler(throttling.SimpleRateThrottle):
         return (int(num_requests_str), period_num * period_unit)
 
     def get_cache_key(self, request, view):
-        return self.cache_key_template.format(
-            ident_hash=sha1_string(self.get_ident(request))
-        )
+        ident_bytes = self.get_ident(request).encode("utf-8")
+        ident_hash = ident_hasher(ident_bytes).hexdigest()[:20]
+        return self.cache_key_template.format(ident_hash=ident_hash)
 
 
 class AuthTokenThrottler(throttling.BaseThrottle):
@@ -51,7 +52,7 @@ class AuthTokenThrottler(throttling.BaseThrottle):
         code_token = request.data.get("code_token")
         return (
             self.cache_key_template.format(
-                code_token_hash=sha1_string(code_token)
+                code_token_hash=get_code_token_hash(code_token)
             )
             if code_token
             else None

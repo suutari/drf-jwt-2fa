@@ -4,6 +4,11 @@ Django Rest Framework JWT 2FA Change Log
 Unreleased
 ----------
 
+* Replace SHA-1 with more secure hashing for cache keys:
+
+  * Throttle ident keys now use SHA-256 (truncated to 20 hex chars)
+  * Code token cache keys now just use the jti part of the token
+
 * Generate unique "jti" (JWT ID) for each code token
 
 * Use user id (``user.pk``) instead of username in code tokens

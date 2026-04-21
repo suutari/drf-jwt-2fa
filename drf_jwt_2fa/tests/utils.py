@@ -43,7 +43,7 @@ def check_auth_token(
     assert isinstance(payload["user_id"], (str, int))
     assert payload["exp"] > time.time()
     key = jwt_settings.SIGNING_KEY
-    jwt.decode(token, key, algorithms=["HS256"])
+    return jwt.decode(token, key, algorithms=["HS256"])
 
 
 def check_code_token(token, user_id=None, verify=True):
@@ -64,7 +64,9 @@ def check_code_token(token, user_id=None, verify=True):
     assert len(payload["vcn"]) == 10
     if verify:
         key = api_settings.CODE_TOKEN_SECRET_KEY
-        jwt.decode(token, key, algorithms=["HS256"])
+        verified = jwt.decode(token, key, algorithms=["HS256"])
+        assert verified == payload
+    return payload
 
 
 def check_token_basics_and_get_payload(token):

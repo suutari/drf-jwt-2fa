@@ -2,7 +2,7 @@ import datetime
 import math
 import pickle
 import time
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import pytest
 from django.core.cache.backends.locmem import LocMemCache
@@ -11,14 +11,11 @@ from django.urls import reverse
 from freezegun import freeze_time
 from rest_framework import status
 
-from drf_jwt_2fa.throttling import CodeTokenThrottler
+from drf_jwt_2fa.throttling import AuthTokenThrottler, CodeTokenThrottler
+from drf_jwt_2fa.utils import get_code_token_hash
 
-from .test_endpoints import get_code_token
-from .utils import (
-    OverrideJwt2faSettings,
-    get_api_client,
-    get_verification_code_from_mailbox,
-)
+from .factories import get_code_token
+from .utils import OverrideJwt2faSettings, get_api_client
 
 
 @pytest.mark.parametrize("num", [None, 1, 42, 938383])
@@ -42,8 +39,12 @@ def get_code_token_throttler(cache):
 
 @OverrideJwt2faSettings(CODE_TOKEN_THROTTLE_RATE="2/10s")
 def test_code_token_throttler():
-    with patch("drf_jwt_2fa.throttling.sha1_string") as mocked_sha1_string:
-        mocked_sha1_string.side_effect = lambda x: f"SHA1({x})"
+    def fake_hasher(initial):
+        hasher = Mock()
+        hasher.hexdigest.return_value = f"HASH({initial.decode()})"
+        return hasher
+
+    with patch("drf_jwt_2fa.throttling.ident_hasher", side_effect=fake_hasher):
         check_code_token_throttler(RequestFactory())
 
 
@@ -59,14 +60,14 @@ def check_code_token_throttler(rf):
         # First two requests should be allowed
         assert throttler.allow_request(request, None) is True
         assert inspect_cache(cache) == {
-            ":1:drf_jwt_2fa-tc-SHA1(127.0.0.1)": [1577970000.0],
+            ":1:drf_jwt_2fa-tc-HASH(127.0.0.1)": [1577970000.0],
         }
 
         frozen_datetime.tick(delta=datetime.timedelta(seconds=1))
         throttler = get_code_token_throttler(cache)
         assert throttler.allow_request(request, None) is True
         assert inspect_cache(cache) == {
-            ":1:drf_jwt_2fa-tc-SHA1(127.0.0.1)": [1577970001.0, 1577970000.0],
+            ":1:drf_jwt_2fa-tc-HASH(127.0.0.1)": [1577970001.0, 1577970000.0],
         }
 
         # Third request should be throttled
@@ -74,7 +75,7 @@ def check_code_token_throttler(rf):
         frozen_datetime.tick(delta=datetime.timedelta(seconds=1))
         assert throttler.allow_request(request, None) is False
         assert inspect_cache(cache) == {
-            ":1:drf_jwt_2fa-tc-SHA1(127.0.0.1)": [1577970001.0, 1577970000.0],
+            ":1:drf_jwt_2fa-tc-HASH(127.0.0.1)": [1577970001.0, 1577970000.0],
         }
 
         # After 8s more, total 11s have passed and a new request should
@@ -83,7 +84,7 @@ def check_code_token_throttler(rf):
         frozen_datetime.tick(delta=datetime.timedelta(seconds=8))
         assert throttler.allow_request(request, None) is True
         assert inspect_cache(cache) == {
-            ":1:drf_jwt_2fa-tc-SHA1(127.0.0.1)": [1577970010.0, 1577970001.0],
+            ":1:drf_jwt_2fa-tc-HASH(127.0.0.1)": [1577970010.0, 1577970001.0],
         }
 
 
@@ -94,33 +95,17 @@ def inspect_cache(cache):
     }
 
 
-@pytest.mark.django_db
 def test_code_token_throttling():
     with freeze_time("2020-01-02 13:00:00") as frozen_datetime:
         assert time.time() == 1577970000.0
 
-        code_token1 = get_code_token()
-        code1 = get_verification_code_from_mailbox()
+        code1 = "1111111"
+        code_token1 = get_code_token(verification_code=code1)
 
-        code_token2 = get_code_token()
-        code2 = get_verification_code_from_mailbox()
+        code2 = "2222222"
+        code_token2 = get_code_token(verification_code=code2)
 
-        incorrect_codes = [
-            code
-            for code in [
-                "1234567",
-                "2345678",
-                "3456789",
-                "4567890",
-                "5678901",
-                "6789012",
-                "7890123",
-                "8901234",
-                "9012345",
-                "0123456",
-            ]
-            if code not in {code1, code2}
-        ]
+        incorrect_codes = ["1234", "2345", "3456", "4567", "5678", "6789"]
         client = get_api_client()
 
         def attempt(code_token, code):
@@ -191,3 +176,66 @@ def test_code_token_throttling():
             "detail": "Incorrect authentication credentials."
         }
         assert result5.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+def test_auth_token_throttler_cache_key_no_token():
+    """AuthTokenThrottler returns None cache key when no code_token."""
+    rf = RequestFactory()
+    request = rf.post("/", data={}, content_type="application/json")
+    request.data = {}
+    throttler = AuthTokenThrottler()
+    assert throttler.get_cache_key(request, None) is None
+
+
+def test_auth_token_throttler_cache_key_uses_get_code_token_hash():
+    """AuthTokenThrottler cache key is based on get_code_token_hash."""
+    rf = RequestFactory()
+    token = get_code_token()
+    request = rf.post("/")
+    request.data = {"code_token": token}
+    throttler = AuthTokenThrottler()
+
+    key = throttler.get_cache_key(request, None)
+
+    expected_key = f"drf_jwt_2fa-ta-{get_code_token_hash(token)}"
+    assert key == expected_key
+
+
+def test_auth_token_throttler_cache_key_differs_per_token():
+    """Different code tokens produce different cache keys."""
+    rf = RequestFactory()
+    token_a = get_code_token()
+    token_b = get_code_token()
+    throttler = AuthTokenThrottler()
+
+    def make_request(token):
+        request = rf.post("/")
+        request.data = {"code_token": token}
+        return request
+
+    key_a = throttler.get_cache_key(make_request(token_a), None)
+    key_b = throttler.get_cache_key(make_request(token_b), None)
+
+    assert key_a != key_b
+
+
+@freeze_time("2020-01-02 13:00:00")
+def test_auth_token_throttler_cache_key_stored_in_cache():
+    """The key stored in cache matches get_code_token_hash of the token."""
+    rf = RequestFactory()
+    token = get_code_token()
+    request = rf.post("/")
+    request.data = {"code_token": token}
+    token_hash = get_code_token_hash(token)
+
+    cache = LocMemCache("test_auth_cache", {})
+    cache.clear()
+    throttler = AuthTokenThrottler()
+    throttler.cache = cache
+
+    throttler.allow_request(request, None)
+
+    assert inspect_cache(cache) == {
+        # Note: 1577970002.0 = unix time of now + 2 seconds (retry wait time)
+        f":1:drf_jwt_2fa-ta-{token_hash}": 1577970002.0,
+    }
