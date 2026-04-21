@@ -24,6 +24,11 @@ DEFAULTS = {
     # request authentication token with a with the same code token and a
     # verification code
     "AUTH_TOKEN_RETRY_WAIT_TIME": datetime.timedelta(seconds=2),
+    # Maximum number of failed verification attempts per code token before
+    # the token is invalidated and further attempts are rejected
+    "MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN": 5,
+    # Maximum number of unexpired code tokens a user can have at a time
+    "MAX_ACTIVE_CODE_TOKENS_PER_USER": 3,
     # Name of the keys for the token values in the dictionary returned
     # by the ObtainAuthToken view
     "AUTH_RESULT_ACCESS_TOKEN_KEY": "access",

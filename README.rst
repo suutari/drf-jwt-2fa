@@ -123,6 +123,16 @@ available settings with their default values::
       # verification code
       'AUTH_TOKEN_RETRY_WAIT_TIME': datetime.timedelta(seconds=2),
 
+      # Maximum number of failed verification attempts allowed per code
+      # token before the token is invalidated and further attempts are
+      # rejected with HTTP 403.  Set to None to disable the limit.
+      'MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN': 5,
+
+      # Maximum number of unexpired code tokens a user may have at a time.
+      # Requesting a new code token when the limit is reached returns
+      # HTTP 429.  Set to None to disable the limit.
+      'MAX_ACTIVE_CODE_TOKENS_PER_USER': 3,
+
       # Name of the keys for the token values in the dictionary returned
       # by the ObtainAuthToken view
       'AUTH_RESULT_ACCESS_TOKEN_KEY': 'access',

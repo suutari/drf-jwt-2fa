@@ -4,6 +4,12 @@ Django Rest Framework JWT 2FA Change Log
 Unreleased
 ----------
 
+* Allow only 5 authentication attempts per code token by default
+  (configurable via ``MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN`` setting)
+
+* Allow only 3 active code tokens per user at a time by default
+  (configurable via ``MAX_ACTIVE_CODE_TOKENS_PER_USER`` setting)
+
 * Fix ``EMAIL_SENDER_FROM_ADDRESS`` setting being ignored when sending
   verification e-mails
 
