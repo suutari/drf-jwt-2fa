@@ -4,6 +4,8 @@ Django Rest Framework JWT 2FA Change Log
 Unreleased
 ----------
 
+* Use ``:`` as delimiter in all cache keys
+
 * Replace SHA-1 with more secure hashing for cache keys:
 
   * Throttle ident keys now use SHA-256 (truncated to 20 hex chars)

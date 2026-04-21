@@ -60,14 +60,17 @@ def check_code_token_throttler(rf):
         # First two requests should be allowed
         assert throttler.allow_request(request, None) is True
         assert inspect_cache(cache) == {
-            ":1:drf_jwt_2fa-tc-HASH(127.0.0.1)": [1577970000.0],
+            ":1:drf_jwt_2fa:throttle:code:HASH(127.0.0.1)": [1577970000.0],
         }
 
         frozen_datetime.tick(delta=datetime.timedelta(seconds=1))
         throttler = get_code_token_throttler(cache)
         assert throttler.allow_request(request, None) is True
         assert inspect_cache(cache) == {
-            ":1:drf_jwt_2fa-tc-HASH(127.0.0.1)": [1577970001.0, 1577970000.0],
+            ":1:drf_jwt_2fa:throttle:code:HASH(127.0.0.1)": [
+                1577970001.0,
+                1577970000.0,
+            ],
         }
 
         # Third request should be throttled
@@ -75,7 +78,10 @@ def check_code_token_throttler(rf):
         frozen_datetime.tick(delta=datetime.timedelta(seconds=1))
         assert throttler.allow_request(request, None) is False
         assert inspect_cache(cache) == {
-            ":1:drf_jwt_2fa-tc-HASH(127.0.0.1)": [1577970001.0, 1577970000.0],
+            ":1:drf_jwt_2fa:throttle:code:HASH(127.0.0.1)": [
+                1577970001.0,
+                1577970000.0,
+            ],
         }
 
         # After 8s more, total 11s have passed and a new request should
@@ -84,7 +90,10 @@ def check_code_token_throttler(rf):
         frozen_datetime.tick(delta=datetime.timedelta(seconds=8))
         assert throttler.allow_request(request, None) is True
         assert inspect_cache(cache) == {
-            ":1:drf_jwt_2fa-tc-HASH(127.0.0.1)": [1577970010.0, 1577970001.0],
+            ":1:drf_jwt_2fa:throttle:code:HASH(127.0.0.1)": [
+                1577970010.0,
+                1577970001.0,
+            ],
         }
 
 
@@ -197,7 +206,7 @@ def test_auth_token_throttler_cache_key_uses_get_code_token_hash():
 
     key = throttler.get_cache_key(request, None)
 
-    expected_key = f"drf_jwt_2fa-ta-{get_code_token_hash(token)}"
+    expected_key = f"drf_jwt_2fa:throttle:auth:{get_code_token_hash(token)}"
     assert key == expected_key
 
 
@@ -237,5 +246,5 @@ def test_auth_token_throttler_cache_key_stored_in_cache():
 
     assert inspect_cache(cache) == {
         # Note: 1577970002.0 = unix time of now + 2 seconds (retry wait time)
-        f":1:drf_jwt_2fa-ta-{token_hash}": 1577970002.0,
+        f":1:drf_jwt_2fa:throttle:auth:{token_hash}": 1577970002.0,
     }

@@ -9,7 +9,7 @@ from .utils import get_code_token_hash
 
 
 class CodeTokenThrottler(throttling.SimpleRateThrottle):
-    cache_key_template = "drf_jwt_2fa-tc-{ident_hash}"
+    cache_key_template = "drf_jwt_2fa:throttle:code:{ident_hash}"
 
     @property
     def rate(self):
@@ -31,7 +31,7 @@ class CodeTokenThrottler(throttling.SimpleRateThrottle):
 
 class AuthTokenThrottler(throttling.BaseThrottle):
     cache = default_cache
-    cache_key_template = "drf_jwt_2fa-ta-{code_token_hash}"
+    cache_key_template = "drf_jwt_2fa:throttle:auth:{code_token_hash}"
 
     def allow_request(self, request, view):
         key = self.get_cache_key(request, view)
