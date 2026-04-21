@@ -4,6 +4,8 @@ Django Rest Framework JWT 2FA Change Log
 Unreleased
 ----------
 
+* Use user id (``user.pk``) instead of username in code tokens
+
 * Allow only 5 authentication attempts per code token by default
   (configurable via ``MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN`` setting)
 

@@ -61,7 +61,7 @@ class CodeTokenManager:
 
         Check integrity of the given code token and check that the
         verification code is correct for the given token.  Return
-        username of the verified user, if both are OK, or raise a
+        primary key of the verified user, if both are OK, or raise a
         validation error otherwise.
 
         Raises TooManyAuthAttemptsError if the token has already
@@ -71,8 +71,7 @@ class CodeTokenManager:
         :param token: Code token to check
         :type code: str
         :param code: Verification code to check against the token
-        :rtype: str
-        :return: Username of the verified user
+        :return: Primary key of the verified user
         """
         payload = self.decode_token(token)
         self._check_auth_attempts_not_exceeded(token, payload)
@@ -81,7 +80,7 @@ class CodeTokenManager:
         if not self.is_verification_code_ok(code, nonce, hashed_code):
             self._record_failed_auth_attempt(token, payload)
             raise exceptions.AuthenticationFailed()
-        return payload.get("usr")
+        return payload.get("uid")
 
     def _check_and_register_active_token(self, user_id, expiry):
         """
@@ -139,7 +138,7 @@ class CodeTokenManager:
         expiration_seconds = int(expiration_time.total_seconds())
         (hashed_code, nonce) = self.hash_verification_code(code)
         return {
-            "usr": user.get_username(),
+            "uid": user.pk,
             "vch": hashed_code,  # Verification Code Hash
             "vcn": nonce,  # Verification Code Nonce
             "iat": now,

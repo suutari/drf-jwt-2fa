@@ -129,10 +129,11 @@ def test_create_code_token_with_custom_sender_raising_code_sending_error():
 @pytest.mark.django_db
 def test_check_code_token_and_code_success():
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    user = get_user()
+    token = manager.create_code_token(user)
     code = get_verification_code_from_mailbox()
-    username = manager.check_code_token_and_code(token, code)
-    assert username == "testuser"
+    user_id = manager.check_code_token_and_code(token, code)
+    assert user_id == user.pk
 
 
 @pytest.mark.django_db
@@ -142,9 +143,9 @@ def test_check_code_token_and_code_with_invalid_token():
     code = get_verification_code_from_mailbox()
     (header, payload_before, signature) = token.split(".")
     payload = decode_jwt_part(payload_before)
-    payload["usr"] = "somebody-else"
+    payload["uid"] = 0
     new_token = header + "." + encode_jwt_part(payload) + "." + signature
-    check_code_token(new_token, username="somebody-else", verify=False)
+    check_code_token(new_token, user_id=0, verify=False)
     with pytest.raises(Exception) as exc_info:
         manager.check_code_token_and_code(new_token, code)
     assert str(exc_info.value) == "Incorrect authentication credentials."
@@ -202,7 +203,8 @@ def test_check_code_token_and_code_blocks_after_max_failed_attempts():
 @OverrideJwt2faSettings(MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN=3)
 def test_check_code_token_and_code_succeeds_within_attempt_limit():
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    user = get_user()
+    token = manager.create_code_token(user)
     correct_code = get_verification_code_from_mailbox()
     wrong_code = "0000000" if correct_code != "0000000" else "1111111"
 
@@ -211,8 +213,8 @@ def test_check_code_token_and_code_succeeds_within_attempt_limit():
         with pytest.raises(exceptions.AuthenticationFailed):
             manager.check_code_token_and_code(token, wrong_code)
 
-    username = manager.check_code_token_and_code(token, correct_code)
-    assert username == "testuser"
+    user_id = manager.check_code_token_and_code(token, correct_code)
+    assert user_id == user.pk
 
 
 @pytest.mark.django_db

@@ -50,17 +50,17 @@ class AuthTokenSerializer(Jwt2faSerializer):
     def _authenticate(self, attrs):
         code_token = attrs.get("code_token")
         code = attrs.get("code")
-        username = self._check_code_token_and_code(code_token, code)
-        user = self._get_user(username)
+        user_id = self._check_code_token_and_code(code_token, code)
+        user = self._get_user(user_id)
         return user
 
     def _check_code_token_and_code(self, code_token, code):
         return self.token_manager.check_code_token_and_code(code_token, code)
 
-    def _get_user(self, username):
+    def _get_user(self, user_id):
         user_model = get_user_model()
         try:
-            user = user_model.objects.get_by_natural_key(username)
+            user = user_model.objects.get(pk=user_id)
         except user_model.DoesNotExist:
             raise exceptions.AuthenticationFailed() from None
         check_user_validity(user)

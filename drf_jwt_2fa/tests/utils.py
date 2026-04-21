@@ -46,17 +46,18 @@ def check_auth_token(
     jwt.decode(token, key, algorithms=["HS256"])
 
 
-def check_code_token(token, username="testuser", verify=True):
+def check_code_token(token, user_id=None, verify=True):
     payload = check_token_basics_and_get_payload(token)
-    assert sorted(payload.keys()) == ["exp", "iat", "usr", "vch", "vcn"]
+    assert sorted(payload.keys()) == ["exp", "iat", "uid", "vch", "vcn"]
     assert isinstance(payload["exp"], int)
     assert isinstance(payload["iat"], int)
-    assert isinstance(payload["usr"], str)
+    assert isinstance(payload["uid"], (int, str))
     assert isinstance(payload["vch"], str)
     assert isinstance(payload["vcn"], str)
     assert payload["exp"] > time.time()
     assert payload["iat"] <= time.time()
-    assert payload["usr"] == username
+    if user_id is not None:
+        assert payload["uid"] == user_id
     assert payload["vch"].startswith("pbkdf2_sha256$")
     assert len(payload["vcn"]) == 10
     if verify:
