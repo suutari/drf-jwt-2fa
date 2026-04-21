@@ -1,6 +1,27 @@
 Django Rest Framework JWT 2FA Change Log
 ========================================
 
+Unreleased
+----------
+
+* Fix ``EMAIL_SENDER_FROM_ADDRESS`` setting being ignored when sending
+  verification e-mails
+
+* Wrap unexpected exceptions from a custom ``CODE_SENDER`` function in
+  ``CodeSendingError`` and log them with a traceback, instead of letting
+  them propagate unhandled
+
+* Rename ``CodeSendingFailed`` to ``CodeSendingError`` and
+  ``VerificationCodeSendingFailed`` to ``VerificationCodeSendingError``
+
+* Tooling and Test Changes:
+
+    * Replace flake8/isort with Ruff for linting and code formatting
+    * Add Mypy for static type checking (code still unannotated though)
+    * Separate ``lint`` and ``style`` Tox environments in CI
+    * Remove dependency on the ``six`` library from tests
+    * Replace ``mock`` usage with ``unittest.mock`` from stdlib
+
 0.5.0 (Released 2026-04-01 13:37 +0200)
 ---------------------------------------
 
