@@ -4,6 +4,8 @@ Django Rest Framework JWT 2FA Change Log
 Unreleased
 ----------
 
+* Generate unique "jti" (JWT ID) for each code token
+
 * Use user id (``user.pk``) instead of username in code tokens
 
 * Allow only 5 authentication attempts per code token by default

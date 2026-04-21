@@ -115,6 +115,9 @@ available settings with their default values::
       # How long the code token is valid
       'CODE_EXPIRATION_TIME': datetime.timedelta(minutes=5),
 
+      # Number of bytes to use for the code token JTI (JWT ID)
+      'CODE_TOKEN_JTI_BYTES': 16,  # 16 bytes = 128 bits
+
       # Throttle limit for code token requests from same IP
       'CODE_TOKEN_THROTTLE_RATE': '12/3h',
 

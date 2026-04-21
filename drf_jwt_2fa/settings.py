@@ -18,6 +18,8 @@ DEFAULTS = {
     "CODE_EXTENSION_SECRET": hash_string("2fa-ext-" + settings.SECRET_KEY),
     # How long the code token is valid
     "CODE_EXPIRATION_TIME": datetime.timedelta(minutes=5),
+    # Number of bytes to use for the code token JTI (JWT ID)
+    "CODE_TOKEN_JTI_BYTES": 16,
     # Throttle limit for code token requests from same IP
     "CODE_TOKEN_THROTTLE_RATE": "12/3h",
     # How much time must pass between verification attempts, i.e. to

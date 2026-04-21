@@ -48,12 +48,14 @@ def check_auth_token(
 
 def check_code_token(token, user_id=None, verify=True):
     payload = check_token_basics_and_get_payload(token)
-    assert sorted(payload.keys()) == ["exp", "iat", "uid", "vch", "vcn"]
+    assert sorted(payload.keys()) == ["exp", "iat", "jti", "uid", "vch", "vcn"]
+    assert isinstance(payload["jti"], str)
     assert isinstance(payload["exp"], int)
     assert isinstance(payload["iat"], int)
     assert isinstance(payload["uid"], (int, str))
     assert isinstance(payload["vch"], str)
     assert isinstance(payload["vcn"], str)
+    assert len(payload["jti"]) == 22  # 16 bytes base64 encoded without padding
     assert payload["exp"] > time.time()
     assert payload["iat"] <= time.time()
     if user_id is not None:

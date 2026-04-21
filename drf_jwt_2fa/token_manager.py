@@ -1,3 +1,4 @@
+import secrets
 import time
 
 import jwt
@@ -138,6 +139,7 @@ class CodeTokenManager:
         expiration_seconds = int(expiration_time.total_seconds())
         (hashed_code, nonce) = self.hash_verification_code(code)
         return {
+            "jti": secrets.token_urlsafe(api_settings.CODE_TOKEN_JTI_BYTES),
             "uid": user.pk,
             "vch": hashed_code,  # Verification Code Hash
             "vcn": nonce,  # Verification Code Nonce
