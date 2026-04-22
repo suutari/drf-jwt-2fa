@@ -60,7 +60,6 @@ def check_code_token(token, user_id=None, verify=True):
     assert payload["iat"] <= time.time()
     if user_id is not None:
         assert payload["uid"] == user_id
-    assert payload["vch"].startswith("pbkdf2_sha256$")
     assert len(payload["vcn"]) == 10
     if verify:
         key = api_settings.CODE_TOKEN_SECRET_KEY

@@ -8,6 +8,7 @@ import pytest
 from django.core import mail
 from django.core.cache import cache
 from django.core.cache.backends.locmem import LocMemCache
+from django.test import override_settings
 from rest_framework import exceptions, status
 
 from drf_jwt_2fa.exceptions import (
@@ -45,6 +46,22 @@ def test_create_code_token():
 
     # Check the generated token
     check_code_token(token)
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize(
+    "hasher, prefix",
+    [
+        ("django.contrib.auth.hashers.PBKDF2PasswordHasher", "pbkdf2_sha256$"),
+        ("django.contrib.auth.hashers.MD5PasswordHasher", "md5$"),
+    ],
+)
+def test_create_code_token_uses_password_hasher_for_vch(hasher, prefix):
+    with override_settings(PASSWORD_HASHERS=[hasher]):
+        manager = CodeTokenManager()
+        token = manager.create_code_token(get_user())
+        payload = check_code_token(token)
+        assert payload["vch"].startswith(prefix)
 
 
 @pytest.mark.django_db
