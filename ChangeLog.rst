@@ -4,6 +4,8 @@ Django Rest Framework JWT 2FA Change Log
 Unreleased
 ----------
 
+* Invalidate code token after successful authentication to prevent reuse
+
 * Use ``:`` as delimiter in all cache keys
 
 * Replace SHA-1 with more secure hashing for cache keys:

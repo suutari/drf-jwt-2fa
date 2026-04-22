@@ -14,6 +14,14 @@ class TooManyCodeTokensError(exceptions.Throttled):
     )
 
 
+class TokenAlreadyUsedError(exceptions.AuthenticationFailed):
+    default_code = "token_already_used"
+    default_detail = _(
+        "This code token has already been used. If this wasn't you, "
+        "your account may be compromised."
+    )
+
+
 class VerificationCodeSendingError(exceptions.APIException):
     status_code = status.HTTP_501_NOT_IMPLEMENTED
     default_code = "verification_code_sending_failed"

@@ -1,4 +1,5 @@
 import datetime
+import threading
 import time
 from unittest.mock import patch
 
@@ -6,9 +7,11 @@ import freezegun
 import pytest
 from django.core import mail
 from django.core.cache import cache
+from django.core.cache.backends.locmem import LocMemCache
 from rest_framework import exceptions, status
 
 from drf_jwt_2fa.exceptions import (
+    TokenAlreadyUsedError,
     TooManyAuthAttemptsError,
     TooManyCodeTokensError,
     VerificationCodeSendingError,
@@ -134,6 +137,84 @@ def test_check_code_token_and_code_success():
     code = get_verification_code_from_mailbox()
     user_id = manager.check_code_token_and_code(token, code)
     assert user_id == user.pk
+
+
+@pytest.mark.django_db
+def test_check_code_token_and_code_cannot_be_reused():
+    manager = CodeTokenManager()
+    user = get_user()
+    token = manager.create_code_token(user)
+    code = get_verification_code_from_mailbox()
+
+    # First use succeeds
+    user_id = manager.check_code_token_and_code(token, code)
+    assert user_id == user.pk
+
+    # Second use with the same token and correct code is rejected
+    with pytest.raises(TokenAlreadyUsedError):
+        manager.check_code_token_and_code(token, code)
+
+
+@pytest.mark.django_db
+def test_check_code_token_reuse_check_is_atomic():
+    """
+    Test that the check for token reuse in check_code_token_and_code is atomic.
+
+    Instruments cache write operations to widen race window: cache.get
+    is fast so all threads should see that the code is not yet used,
+    while cache.set and cache.add are instrumented to be slow, which
+    should trigger the race condition.
+    """
+    manager = CodeTokenManager()
+    user = get_user()
+    token = manager.create_code_token(user)
+    code = get_verification_code_from_mailbox()
+
+    results = []
+    instrumentation_log = []
+    lock = threading.Lock()
+
+    original_set = LocMemCache.set
+    original_add = LocMemCache.add
+
+    def slow_set(self, key, value, *args, **kwargs):  # pragma: no cover
+        with lock:
+            instrumentation_log.append(f"cache.set({key}, {value})")
+        time.sleep(0.02)
+        return original_set(self, key, value, *args, **kwargs)
+
+    def slow_add(self, key, value, *args, **kwargs):
+        with lock:
+            instrumentation_log.append(f"cache.add({key}, {value})")
+        time.sleep(0.02)
+        return original_add(self, key, value, *args, **kwargs)
+
+    with (
+        patch.object(LocMemCache, "set", slow_set),
+        patch.object(LocMemCache, "add", slow_add),
+    ):
+
+        def attempt():
+            try:
+                manager.check_code_token_and_code(token, code)
+                with lock:
+                    results.append("ok")
+            except TokenAlreadyUsedError:
+                with lock:
+                    results.append("used")
+            except Exception as error:  # pragma: no cover
+                with lock:
+                    results.append(f"error: {error!r}")
+                raise
+
+        threads = [threading.Thread(target=attempt) for _ in range(3)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join()
+
+    assert instrumentation_log != []
+    assert sorted(results) == ["ok", "used", "used"]
 
 
 @pytest.mark.django_db

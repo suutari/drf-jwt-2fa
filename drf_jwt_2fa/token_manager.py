@@ -9,6 +9,7 @@ from django.utils.translation import gettext as _
 from rest_framework import exceptions
 
 from .exceptions import (
+    TokenAlreadyUsedError,
     TooManyAuthAttemptsError,
     TooManyCodeTokensError,
     VerificationCodeSendingError,
@@ -24,6 +25,7 @@ class CodeTokenManager:
         "drf_jwt_2fa:auth_attempts:{token_hash}"
     )
     _active_tokens_cache_key_template = "drf_jwt_2fa:active_tokens:{user_id}"
+    _used_tokens_cache_key_template = "drf_jwt_2fa:used_token:{jti}"
 
     @property
     def code_length(self):
@@ -81,6 +83,7 @@ class CodeTokenManager:
         if not self.is_verification_code_ok(code, nonce, hashed_code):
             self._record_failed_auth_attempt(token, payload)
             raise exceptions.AuthenticationFailed()
+        self._reserve_token(payload)
         return payload.get("uid")
 
     def _check_and_register_active_token(self, user_id, expiry):
@@ -122,6 +125,16 @@ class CodeTokenManager:
         ttl = max(int(payload.get("exp", time.time()) - time.time()), 1)
         if not cache.add(key, 1, timeout=ttl):
             cache.incr(key)
+
+    def _used_tokens_cache_key(self, payload):
+        jti = payload.get("jti", "")
+        return self._used_tokens_cache_key_template.format(jti=jti)
+
+    def _reserve_token(self, payload):
+        key = self._used_tokens_cache_key(payload)
+        ttl = max(int(payload.get("exp", time.time()) - time.time()), 1)
+        if not cache.add(key, True, timeout=ttl):
+            raise TokenAlreadyUsedError()
 
     def generate_verification_code(self):
         return get_random_string(self.code_length, self.code_chars)
