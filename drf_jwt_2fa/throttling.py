@@ -42,21 +42,19 @@ class AuthTokenThrottler(throttling.BaseThrottle):
         if next_allowed and next_allowed > now:
             self.wait_time = next_allowed - now
             return False
-        self.cache.set(key, now + self.retry_wait_seconds)
+        next_allowed = now + self.retry_wait_seconds
+        self.cache.set(key, next_allowed, timeout=self.retry_wait_seconds)
         return True
 
     def wait(self):
         return self.wait_time
 
     def get_cache_key(self, request, view):
-        code_token = request.data.get("code_token")
-        return (
-            self.cache_key_template.format(
-                code_token_hash=get_code_token_hash(code_token)
-            )
-            if code_token
-            else None
-        )
+        token = request.data.get("code_token")
+        if not token:
+            return None
+        token_hash = get_code_token_hash(token)
+        return self.cache_key_template.format(code_token_hash=token_hash)
 
     @property
     def retry_wait_seconds(self):
