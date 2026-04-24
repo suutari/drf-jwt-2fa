@@ -1,0 +1,46 @@
+#!/usr/bin/env python3
+
+import io
+import pathlib
+import sys
+
+import readme_renderer.rst
+import readme_renderer.txt
+
+
+def main(argv=sys.argv, out=sys.stdout):
+    if not argv[1:]:
+        raise SystemExit(f"Usage: {argv[0]} FILE [FILE ...]")
+
+    failed = []
+    for filename in argv[1:]:
+        path = pathlib.Path(filename)
+        content = path.read_text()
+
+        if filename.lower().endswith(".rst"):
+            render = readme_renderer.rst.render
+            out.write(f"Checking reStructuredText file: {filename}\n")
+        elif filename.lower().endswith(".md"):
+            from readme_renderer.markdown import render as markdown_render
+
+            render = markdown_render
+            out.write(f"Checking Markdown file: {filename}\n")
+        else:
+            render = readme_renderer.txt.render
+            out.write(f"Checking plain text file: {filename}\n")
+
+        errors = io.StringIO()
+        result = render(content, stream=errors)
+
+        sys.stderr.write(errors.getvalue().replace("<string>", filename))
+        if not result:
+            failed.append(filename)
+
+    if failed:
+        raise SystemExit(f"Failed to render: {', '.join(failed)}")
+    else:
+        out.write("All files rendered successfully.\n")
+
+
+if __name__ == "__main__":
+    main()
