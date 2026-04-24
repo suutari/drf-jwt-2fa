@@ -1,8 +1,8 @@
 Django Rest Framework JWT 2FA Change Log
 ========================================
 
-Unreleased
-----------
+1.0.0 (Released 2026-04-24 19:54 +0200)
+---------------------------------------
 
 * Invalidate code token after successful authentication to prevent reuse
 
