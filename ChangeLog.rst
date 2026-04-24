@@ -35,13 +35,13 @@ Django Rest Framework JWT 2FA Change Log
 
 * Tooling and Test Changes:
 
-    * Replace flake8/isort with Ruff for linting and code formatting
-    * Add Mypy for static type checking (code still unannotated though)
-    * Separate ``lint`` and ``style`` Tox environments in CI
-    * Remove dependency on the ``six`` library from tests
-    * Replace ``mock`` usage with ``unittest.mock`` from stdlib
+  * Replace flake8/isort with Ruff for linting and code formatting
+  * Add Mypy for static type checking (code still unannotated though)
+  * Separate ``lint`` and ``style`` Tox environments in CI
+  * Remove dependency on the ``six`` library from tests
+  * Replace ``mock`` usage with ``unittest.mock`` from stdlib
 
-0.5.0 (Released 2026-04-01 13:37 +0200)
+0.5.0 (Released 2026-04-01 13:37 +0300)
 ---------------------------------------
 
 * Switch to DRF Simple JWT from drf-jwt
