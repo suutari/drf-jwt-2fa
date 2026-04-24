@@ -1,18 +1,31 @@
+import secrets
 import time
 
 import jwt
 from django.contrib.auth import hashers as django_hashers
+from django.core.cache import cache
 from django.utils.crypto import get_random_string
 from django.utils.translation import gettext as _
 from rest_framework import exceptions
 
-from .exceptions import VerificationCodeSendingError
+from .exceptions import (
+    TokenAlreadyUsedError,
+    TooManyAuthAttemptsError,
+    TooManyCodeTokensError,
+    VerificationCodeSendingError,
+)
 from .sending import CodeSendingError, send_verification_code
 from .settings import api_settings
+from .utils import get_code_token_hash
 
 
 class CodeTokenManager:
     jwt_algorithm = "HS256"
+    _auth_attempts_cache_key_template = (
+        "drf_jwt_2fa:auth_attempts:{token_hash}"
+    )
+    _active_tokens_cache_key_template = "drf_jwt_2fa:active_tokens:{user_id}"
+    _used_tokens_cache_key_template = "drf_jwt_2fa:used_token:{jti}"
 
     @property
     def code_length(self):
@@ -30,11 +43,15 @@ class CodeTokenManager:
         generated verification code.  The code token is returned and the
         verification code is sent via another channel (e.g. e-mail).
 
+        Raises TooManyCodeTokensError if the user already has
+        MAX_ACTIVE_CODE_TOKENS_PER_USER unexpired code tokens.
+
         :type user: django.contrib.auth.models.AbstractBaseUser
         :rtype: str
         """
         code = self.generate_verification_code()
         payload = self.get_token_payload(user, code)
+        self._check_and_register_active_token(user.pk, payload["exp"])
         try:
             self.send_verification_code(user, code)
         except CodeSendingError as error:
@@ -47,22 +64,77 @@ class CodeTokenManager:
 
         Check integrity of the given code token and check that the
         verification code is correct for the given token.  Return
-        username of the verified user, if both are OK, or raise a
+        primary key of the verified user, if both are OK, or raise a
         validation error otherwise.
+
+        Raises TooManyAuthAttemptsError if the token has already
+        exceeded MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN failed attempts.
 
         :type token: str
         :param token: Code token to check
         :type code: str
         :param code: Verification code to check against the token
-        :rtype: str
-        :return: Username of the verified user
+        :return: Primary key of the verified user
         """
         payload = self.decode_token(token)
+        self._check_auth_attempts_not_exceeded(token, payload)
         hashed_code = payload.get("vch")
         nonce = payload.get("vcn")
         if not self.is_verification_code_ok(code, nonce, hashed_code):
+            self._record_failed_auth_attempt(token, payload)
             raise exceptions.AuthenticationFailed()
-        return payload.get("usr")
+        self._reserve_token(payload)
+        return payload.get("uid")
+
+    def _check_and_register_active_token(self, user_id, expiry):
+        """
+        Check if user is under the active token limit and register new token.
+
+        :raises TooManyCodeTokensError: if limit is reached
+        """
+        max_tokens = api_settings.MAX_ACTIVE_CODE_TOKENS_PER_USER
+        if max_tokens is None:
+            return
+        key = self._active_tokens_cache_key_template.format(user_id=user_id)
+        now = time.time()
+        active_expiries = [exp for exp in (cache.get(key) or []) if exp > now]
+        if len(active_expiries) >= max_tokens:
+            raise TooManyCodeTokensError()
+        active_expiries.append(expiry)
+        ttl = int(max(exp - now for exp in active_expiries)) + 1
+        cache.set(key, active_expiries, timeout=ttl)
+
+    def _auth_attempts_cache_key(self, token):
+        return self._auth_attempts_cache_key_template.format(
+            token_hash=get_code_token_hash(token)
+        )
+
+    def _check_auth_attempts_not_exceeded(self, token, payload):
+        max_attempts = api_settings.MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN
+        if max_attempts is None:
+            return
+        attempts = cache.get(self._auth_attempts_cache_key(token)) or 0
+        if attempts >= max_attempts:
+            raise TooManyAuthAttemptsError()
+
+    def _record_failed_auth_attempt(self, token, payload):
+        max_attempts = api_settings.MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN
+        if max_attempts is None:
+            return
+        key = self._auth_attempts_cache_key(token)
+        ttl = max(int(payload.get("exp", time.time()) - time.time()), 1)
+        if not cache.add(key, 1, timeout=ttl):
+            cache.incr(key)
+
+    def _used_tokens_cache_key(self, payload):
+        jti = payload.get("jti", "")
+        return self._used_tokens_cache_key_template.format(jti=jti)
+
+    def _reserve_token(self, payload):
+        key = self._used_tokens_cache_key(payload)
+        ttl = max(int(payload.get("exp", time.time()) - time.time()), 1)
+        if not cache.add(key, True, timeout=ttl):
+            raise TokenAlreadyUsedError()
 
     def generate_verification_code(self):
         return get_random_string(self.code_length, self.code_chars)
@@ -80,7 +152,8 @@ class CodeTokenManager:
         expiration_seconds = int(expiration_time.total_seconds())
         (hashed_code, nonce) = self.hash_verification_code(code)
         return {
-            "usr": user.get_username(),
+            "jti": secrets.token_urlsafe(api_settings.CODE_TOKEN_JTI_BYTES),
+            "uid": user.pk,
             "vch": hashed_code,  # Verification Code Hash
             "vcn": nonce,  # Verification Code Nonce
             "iat": now,

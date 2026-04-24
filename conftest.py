@@ -2,8 +2,17 @@ import os
 import sys
 
 import pytest
+from django.core.cache import cache as django_cache
 
 pytest.register_assert_rewrite("drf_jwt_2fa.tests.utils")
+
+
+@pytest.fixture(autouse=True)
+def clear_django_cache():
+
+    django_cache.clear()
+    yield
+    django_cache.clear()
 
 
 def pytest_report_header(config, start_path):

@@ -115,6 +115,9 @@ available settings with their default values::
       # How long the code token is valid
       'CODE_EXPIRATION_TIME': datetime.timedelta(minutes=5),
 
+      # Number of bytes to use for the code token JTI (JWT ID)
+      'CODE_TOKEN_JTI_BYTES': 16,  # 16 bytes = 128 bits
+
       # Throttle limit for code token requests from same IP
       'CODE_TOKEN_THROTTLE_RATE': '12/3h',
 
@@ -122,6 +125,16 @@ available settings with their default values::
       # request authentication token with a with the same code token and a
       # verification code
       'AUTH_TOKEN_RETRY_WAIT_TIME': datetime.timedelta(seconds=2),
+
+      # Maximum number of failed verification attempts allowed per code
+      # token before the token is invalidated and further attempts are
+      # rejected with HTTP 403.  Set to None to disable the limit.
+      'MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN': 5,
+
+      # Maximum number of unexpired code tokens a user may have at a time.
+      # Requesting a new code token when the limit is reached returns
+      # HTTP 429.  Set to None to disable the limit.
+      'MAX_ACTIVE_CODE_TOKENS_PER_USER': 3,
 
       # Name of the keys for the token values in the dictionary returned
       # by the ObtainAuthToken view

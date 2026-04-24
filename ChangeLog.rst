@@ -1,6 +1,46 @@
 Django Rest Framework JWT 2FA Change Log
 ========================================
 
+Unreleased
+----------
+
+* Invalidate code token after successful authentication to prevent reuse
+
+* Use ``:`` as delimiter in all cache keys
+
+* Replace SHA-1 with more secure hashing for cache keys:
+
+  * Throttle ident keys now use SHA-256 (truncated to 20 hex chars)
+  * Code token cache keys now just use the jti part of the token
+
+* Generate unique "jti" (JWT ID) for each code token
+
+* Use user id (``user.pk``) instead of username in code tokens
+
+* Allow only 5 authentication attempts per code token by default
+  (configurable via ``MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN`` setting)
+
+* Allow only 3 active code tokens per user at a time by default
+  (configurable via ``MAX_ACTIVE_CODE_TOKENS_PER_USER`` setting)
+
+* Fix ``EMAIL_SENDER_FROM_ADDRESS`` setting being ignored when sending
+  verification e-mails
+
+* Wrap unexpected exceptions from a custom ``CODE_SENDER`` function in
+  ``CodeSendingError`` and log them with a traceback, instead of letting
+  them propagate unhandled
+
+* Rename ``CodeSendingFailed`` to ``CodeSendingError`` and
+  ``VerificationCodeSendingFailed`` to ``VerificationCodeSendingError``
+
+* Tooling and Test Changes:
+
+    * Replace flake8/isort with Ruff for linting and code formatting
+    * Add Mypy for static type checking (code still unannotated though)
+    * Separate ``lint`` and ``style`` Tox environments in CI
+    * Remove dependency on the ``six`` library from tests
+    * Replace ``mock`` usage with ``unittest.mock`` from stdlib
+
 0.5.0 (Released 2026-04-01 13:37 +0200)
 ---------------------------------------
 

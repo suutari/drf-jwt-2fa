@@ -1,14 +1,15 @@
 import time
+from hashlib import sha256 as ident_hasher
 
 from django.core.cache import cache as default_cache
 from rest_framework import throttling
 
 from .settings import api_settings
-from .utils import sha1_string
+from .utils import get_code_token_hash
 
 
 class CodeTokenThrottler(throttling.SimpleRateThrottle):
-    cache_key_template = "drf_jwt_2fa-tc-{ident_hash}"
+    cache_key_template = "drf_jwt_2fa:throttle:code:{ident_hash}"
 
     @property
     def rate(self):
@@ -23,14 +24,14 @@ class CodeTokenThrottler(throttling.SimpleRateThrottle):
         return (int(num_requests_str), period_num * period_unit)
 
     def get_cache_key(self, request, view):
-        return self.cache_key_template.format(
-            ident_hash=sha1_string(self.get_ident(request))
-        )
+        ident_bytes = self.get_ident(request).encode("utf-8")
+        ident_hash = ident_hasher(ident_bytes).hexdigest()[:20]
+        return self.cache_key_template.format(ident_hash=ident_hash)
 
 
 class AuthTokenThrottler(throttling.BaseThrottle):
     cache = default_cache
-    cache_key_template = "drf_jwt_2fa-ta-{code_token_hash}"
+    cache_key_template = "drf_jwt_2fa:throttle:auth:{code_token_hash}"
 
     def allow_request(self, request, view):
         key = self.get_cache_key(request, view)
@@ -41,21 +42,19 @@ class AuthTokenThrottler(throttling.BaseThrottle):
         if next_allowed and next_allowed > now:
             self.wait_time = next_allowed - now
             return False
-        self.cache.set(key, now + self.retry_wait_seconds)
+        next_allowed = now + self.retry_wait_seconds
+        self.cache.set(key, next_allowed, timeout=self.retry_wait_seconds)
         return True
 
     def wait(self):
         return self.wait_time
 
     def get_cache_key(self, request, view):
-        code_token = request.data.get("code_token")
-        return (
-            self.cache_key_template.format(
-                code_token_hash=sha1_string(code_token)
-            )
-            if code_token
-            else None
-        )
+        token = request.data.get("code_token")
+        if not token:
+            return None
+        token_hash = get_code_token_hash(token)
+        return self.cache_key_template.format(code_token_hash=token_hash)
 
     @property
     def retry_wait_seconds(self):

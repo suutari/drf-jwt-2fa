@@ -36,5 +36,24 @@ def hash_string(string, hasher=hashlib.sha256, formatter=_unpadded_encode):
     return formatter(hasher(string.encode("utf-8")).digest())
 
 
-def sha1_string(string, formatter=_unpadded_encode):
-    return hash_string(string, hasher=hashlib.sha1, formatter=formatter)
+def get_code_token_hash(token, prefix_len=81):
+    """
+    Return a short hash-like identifier for a code token.
+
+    Exploits the fact that a jti values up to 22 characters are fully
+    contained within the first 81 bytes of the token, and the payload
+    part (after the dot) begins with 8 constant bytes from the value of
+    '{"jti"' encoded to base64.
+
+    The return value ``token[:prefix_len].split(".", 1)[-1][8:]`` yields
+    the base64-encoded payload fragment that includes the jti value,
+    which is unique per token and safe to use as a cache key
+    discriminator.
+
+    Note: Even if a longer jti value is configured, the first 22
+    characters should be enough for "hashing" purposes.
+
+    :type token: str
+    :rtype: str
+    """
+    return token[:prefix_len].split(".", 1)[-1][8:]

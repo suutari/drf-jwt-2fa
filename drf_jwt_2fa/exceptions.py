@@ -2,6 +2,26 @@ from django.utils.translation import gettext_lazy as _
 from rest_framework import exceptions, status
 
 
+class TooManyAuthAttemptsError(exceptions.PermissionDenied):
+    default_code = "too_many_auth_attempts"
+    default_detail = _("Too many failed authentication attempts.")
+
+
+class TooManyCodeTokensError(exceptions.Throttled):
+    default_code = "too_many_code_tokens"
+    default_detail = _(
+        "Too many active code tokens. Please wait for existing ones to expire."
+    )
+
+
+class TokenAlreadyUsedError(exceptions.AuthenticationFailed):
+    default_code = "token_already_used"
+    default_detail = _(
+        "This code token has already been used. If this wasn't you, "
+        "your account may be compromised."
+    )
+
+
 class VerificationCodeSendingError(exceptions.APIException):
     status_code = status.HTTP_501_NOT_IMPLEMENTED
     default_code = "verification_code_sending_failed"

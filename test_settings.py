@@ -11,3 +11,6 @@ INSTALLED_APPS = [
 ]
 
 ROOT_URLCONF = "drf_jwt_2fa.urls"
+
+# Use a fast hasher in tests to avoid slow PBKDF2 iterations.
+PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
