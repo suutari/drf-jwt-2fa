@@ -55,7 +55,7 @@ jobs:
     name: "Check: ${{matrix.toxenv}}"
     strategy:
       matrix:
-        toxenv: [lint, style, typing, uvlock, docrendering]
+        toxenv: [lint, style, typing, uvlock, docrendering, deploycheck]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v6
