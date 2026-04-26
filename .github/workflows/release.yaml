@@ -5,24 +5,26 @@ on:
     tags: ["v[0-9]*.*"]
   workflow_dispatch:
 
+env:
+  PYPI_URL: https://upload.pypi.org/legacy/
+  TESTPYPI_URL: https://test.pypi.org/legacy/
+
 jobs:
   publish:
-    name: "Publish to PyPI"
+    name: "Publish to ${{matrix.target}}"
+    strategy:
+      matrix:
+        target: ["PyPI", "TestPyPI"]
+        event: ["${{github.event_name}}"]
+        exclude:
+          - {target: "PyPI", event: "workflow_dispatch"}
+          - {target: "TestPyPI", event: "push"}
+
     runs-on: ubuntu-24.04
     environment: release
     permissions:
       id-token: write
     steps:
-      - name: Determine target
-        run: |
-          if [ "${{github.event_name}}" == "push" ]; then
-            echo "PYPI_NAME=PyPI" >> $GITHUB_ENV
-            echo "PYPI_URL=https://upload.pypi.org/legacy/" >> $GITHUB_ENV
-          else
-            echo "PYPI_NAME=TestPyPI" >> $GITHUB_ENV
-            echo "PYPI_URL=https://test.pypi.org/legacy/" >> $GITHUB_ENV
-          fi
-
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
         with:
           fetch-depth: 0
@@ -31,10 +33,19 @@ jobs:
         with:
           python-version: "3.14.4"
 
+      - name: Set modified version for TestPyPI
+        if: matrix.target == 'TestPyPI'
+        # Replace default-version in pyproject.toml and force
+        # versioningit to use it by removing the .git directory
+        run: |
+          sed -i "s/post0+unknown/post0.dev$(date +%s)/" pyproject.toml
+          rm -rf .git
+
       - name: Build sdist and wheel
         run: uv build
 
-      - name: Publish to ${{env.PYPI_NAME}}
+      - name: Publish to ${{matrix.target}}
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
         with:
-          repository-url: ${{env.PYPI_URL}}
+          repository-url: >-
+            ${{matrix.target == 'PyPI' && env.PYPI_URL || env.TESTPYPI_URL}}
