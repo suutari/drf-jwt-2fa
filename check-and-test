@@ -1,0 +1,8 @@
+#!/bin/sh
+set -e
+tox -m check
+if [ $# -gt 0]; then
+    pytest "$@"
+else
+    pytest -vv --cov=. --cov-fail-under=100
+fi

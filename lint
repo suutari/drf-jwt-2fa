@@ -1,0 +1,3 @@
+#!/bin/sh
+ruff check "$@"
+ruff format --check --diff "$@"

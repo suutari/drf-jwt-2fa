@@ -3,14 +3,12 @@
 ## Test Commands
 
 ```bash
+./check-and-test             # Run all checks and pytest (PREFERRED)
+./lint                       # Run very quick code style and lint check
 pytest                       # Run tests directly without Tox
 pytest drf_jwt_2fa/TESTFILE  # Run tests from specified test file
-tox                          # Run all tests and checks with coverage
+tox                          # Run full test matrix (Python/Django) and checks
 tox -e py314-django60        # Run tests with Python 3.14 and Django 6.0
-tox -e lint                  # Run Ruff linting
-tox -e style                 # Run Ruff style checks
-tox -e uvlock                # Check uv.lock is up to date
-tox -e docrendering          # Check text document rendering
 ```
 
 ## Supported Versions
@@ -29,15 +27,17 @@ tox -e docrendering          # Check text document rendering
 
 ## Testing Notes
 
-- Test only with Pytest without Tox unless explicitly asked for full test matrix
-- Check code style and linting only with `tox -e style,lint`
+- Run full test suite and checks with `./check-and-test` script
+- Run tests from a single test file with `pytest PATH/TO/TESTFILE`
+- Don't run the full test matrix with Tox if not explicitly asked to
+- Check code style and linting only with `./lint` script
 - Check code style, linting and other issues with `tox -m check`
 - Tests use pytest-django with SQLite
 
 ## Commits
 
-- Before each commit, run `tox -m check` and `pytest` to ensure code
-  quality and passing tests.
+- Before each commit, run `./check-and-test` to ensure code quality and
+  passing tests.
 - Make sure ChangeLog is also updated when relevant.
 - Use descriptive commit messages that explain the changes made
 - Use short summary lines (preferably 50 characters or less, but no
