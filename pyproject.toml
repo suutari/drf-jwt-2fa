@@ -1,6 +1,13 @@
+[build-system]
+requires = ["setuptools", "versioningit"]
+build-backend = "setuptools.build_meta"
+
+[tool.versioningit]
+default-version = "1.0.0.post0+unknown"
+
 [project]
 name = "drf-jwt-2fa"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Django Rest Framework JWT 2FA"
 readme = "README.rst"
 keywords = [
