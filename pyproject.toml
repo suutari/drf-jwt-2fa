@@ -118,4 +118,5 @@ django_settings_module = "test_settings"
 
 [tool.mypy]
 files = ["."]
+exclude_gitignore = true
 plugins = ["mypy_django_plugin.main"]
