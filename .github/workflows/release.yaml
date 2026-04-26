@@ -1,0 +1,40 @@
+---
+name: "Release"
+on:
+  push:
+    tags: ["v[0-9]*.*"]
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: "Publish to PyPI"
+    runs-on: ubuntu-24.04
+    environment: release
+    permissions:
+      id-token: write
+    steps:
+      - name: Determine target
+        run: |
+          if [ "${{github.event_name}}" == "push" ]; then
+            echo "PYPI_NAME=PyPI" >> $GITHUB_ENV
+            echo "PYPI_URL=https://upload.pypi.org/legacy/" >> $GITHUB_ENV
+          else
+            echo "PYPI_NAME=TestPyPI" >> $GITHUB_ENV
+            echo "PYPI_URL=https://test.pypi.org/legacy/" >> $GITHUB_ENV
+          fi
+
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+        with:
+          fetch-depth: 0
+
+      - uses: astral-sh/setup-uv@08807647e7069bb48b6ef5acd8ec9567f424441b
+        with:
+          python-version: "3.14.4"
+
+      - name: Build sdist and wheel
+        run: uv build
+
+      - name: Publish to ${{env.PYPI_NAME}}
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b
+        with:
+          repository-url: ${{env.PYPI_URL}}
