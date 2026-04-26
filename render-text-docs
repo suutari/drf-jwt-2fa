@@ -8,38 +8,49 @@ import readme_renderer.rst
 import readme_renderer.txt
 
 
-def main(argv=sys.argv, out=sys.stdout):
+def main(argv=sys.argv, out=sys.stdout, err_out=sys.stderr):
     if not argv[1:]:
-        raise SystemExit(f"Usage: {argv[0]} FILE [FILE ...]")
+        raise SystemExit(f"Usage: {argv[0]} [-c|--check] FILE [FILE ...]")
+
+    if argv[1] in {"-c", "--check"}:
+        files = argv[2:]
+        doc_out = None
+        info_out = out
+    else:
+        files = argv[1:]
+        doc_out = out
+        info_out = err_out
 
     failed = []
-    for filename in argv[1:]:
+    for filename in files:
         path = pathlib.Path(filename)
         content = path.read_text()
 
         if filename.lower().endswith(".rst"):
             render = readme_renderer.rst.render
-            out.write(f"Checking reStructuredText file: {filename}\n")
+            info_out.write(f"Rendering reStructuredText file: {filename}\n")
         elif filename.lower().endswith(".md"):
             from readme_renderer.markdown import render as markdown_render
 
             render = markdown_render
-            out.write(f"Checking Markdown file: {filename}\n")
+            info_out.write(f"Rendering Markdown file: {filename}\n")
         else:
             render = readme_renderer.txt.render
-            out.write(f"Checking plain text file: {filename}\n")
+            info_out.write(f"Rendering plain text file: {filename}\n")
 
         errors = io.StringIO()
         result = render(content, stream=errors)
 
-        sys.stderr.write(errors.getvalue().replace("<string>", filename))
+        err_out.write(errors.getvalue().replace("<string>", filename))
         if not result:
             failed.append(filename)
+        elif doc_out:
+            doc_out.write(result)
 
     if failed:
         raise SystemExit(f"Failed to render: {', '.join(failed)}")
     else:
-        out.write("All files rendered successfully.\n")
+        info_out.write("All files rendered successfully.\n")
 
 
 if __name__ == "__main__":
