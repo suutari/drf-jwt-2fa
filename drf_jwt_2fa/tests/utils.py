@@ -3,7 +3,6 @@ import json
 import time
 
 import jwt
-from django.conf import settings
 from django.core import mail
 from django.test import override_settings
 from django.test.utils import TestContextDecorator
@@ -102,7 +101,6 @@ class OverrideJwt2faSettings(TestContextDecorator):
     def enable(self):
         self.override_settings.enable()
         api_settings.reload()
-        api_settings._user_settings = settings.JWT2FA_AUTH
 
     def disable(self):
         self.override_settings.disable()
