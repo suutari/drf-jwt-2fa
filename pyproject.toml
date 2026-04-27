@@ -40,6 +40,7 @@ dependencies = [
     "django>2",
     "djangorestframework>=3.0",
     "djangorestframework-simplejwt>=5.1",
+    "pyotp>=2.6",
 ]
 
 [project.urls]
