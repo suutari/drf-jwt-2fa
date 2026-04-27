@@ -1,27 +1,12 @@
-import logging
-
 from django.contrib.auth.models import AbstractBaseUser
 from django.core.mail import send_mail
 from django.utils.translation import gettext as _
 
 from .settings import api_settings
 
-LOG = logging.getLogger(__name__)
-
 
 class CodeSendingError(Exception):
     pass
-
-
-def send_verification_code(user: AbstractBaseUser, code: str) -> None:
-    sender = api_settings.CODE_SENDER
-    try:
-        sender(user, code)
-    except CodeSendingError:
-        raise
-    except Exception as error:
-        LOG.exception("Verification code sending failed")
-        raise CodeSendingError(_("Unknown error")) from error
 
 
 def send_verification_code_via_email(

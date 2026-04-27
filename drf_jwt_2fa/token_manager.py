@@ -1,3 +1,4 @@
+import logging
 import secrets
 import time
 from typing import TypedDict
@@ -16,7 +17,7 @@ from .exceptions import (
     TooManyCodeTokensError,
     VerificationCodeSendingError,
 )
-from .sending import CodeSendingError, send_verification_code
+from .sending import CodeSendingError
 from .settings import api_settings
 from .utils import get_code_token_hash
 
@@ -28,6 +29,9 @@ class CodeTokenPayload(TypedDict):
     vcn: str  # Verification Code Nonce
     iat: int  # Issued at
     exp: int  # Expires at
+
+
+LOG = logging.getLogger(__name__)
 
 
 class CodeTokenManager:
@@ -173,7 +177,13 @@ class CodeTokenManager:
     def send_verification_code(
         self, user: AbstractBaseUser, code: str
     ) -> None:
-        send_verification_code(user, code)
+        try:
+            api_settings.CODE_SENDER(user, code)
+        except CodeSendingError:
+            raise
+        except Exception as error:
+            LOG.exception("Verification code sending failed")
+            raise CodeSendingError(_("Unknown error")) from error
 
     def encode_token(self, payload: CodeTokenPayload) -> str:
         key = api_settings.CODE_TOKEN_SECRET_KEY
