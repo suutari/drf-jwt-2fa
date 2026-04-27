@@ -4,6 +4,8 @@ Django Rest Framework JWT 2FA Change Log
 Unreleased
 ----------
 
+* Drop support for Python 3.10, 3.11 and Django 2.2
+
 * Add type annotations to all public and private methods
 
 * Pass ``request`` to ``authenticate()`` in ``CodeTokenSerializer`` to

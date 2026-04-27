@@ -348,8 +348,7 @@ def test_create_code_token_allows_new_token_after_previous_ones_expire():
 
     # After tokens expire, a new one should be allowed
     with freezegun.freeze_time(
-        datetime.datetime.now(tz=datetime.timezone.utc)
-        + datetime.timedelta(seconds=2)
+        datetime.datetime.now(tz=datetime.UTC) + datetime.timedelta(seconds=2)
     ):
         token = manager.create_code_token(user)
     assert token

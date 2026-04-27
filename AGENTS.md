@@ -13,8 +13,8 @@ tox -e py314-django60        # Run tests with Python 3.14 and Django 6.0
 
 ## Supported Versions
 
-- Python: 3.10, 3.12, 3.14
-- Django: 2.2, 3.2, 4.2, 5.2, 6.0
+- Python: 3.12, 3.14
+- Django: 3.2, 4.2, 5.2, 6.0
 
 ## Code Style
 

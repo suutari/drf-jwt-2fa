@@ -41,8 +41,8 @@ The authentication flow uses two JWT tokens and a verification code:
 Requirements
 ------------
 
-* Python 3.10 or newer
-* Django 2.2 or newer
+* Python 3.12 or newer
+* Django 3.2 or newer
 * Django Rest Framework
 * Simple JWT
 
