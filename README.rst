@@ -20,7 +20,10 @@ DRF authentication library called `Simple JWT <simplejwt_>`_.
 Overview
 --------
 
-The authentication flow uses two JWT tokens and a verification code:
+The authentication flow uses two JWT tokens and a verification code.
+Two second-factor methods are supported:
+
+**Code-sender (e-mail by default)**
 
 * First a token called Code Token is requested by providing username and
   password.  If the username and the password are correct, a random
@@ -32,11 +35,27 @@ The authentication flow uses two JWT tokens and a verification code:
   Authentication Token can be requested.  The request is done by
   sending the Code Token and the verification code to another endpoint.
   If the token and the code are correct, an authentication token is
-  returned.  This authentication token can be used to authenticate the
-  following API requests.  With default configuration this
-  authentication token is an access token and its accompanied with a
-  refresh token.  They are in the same format as the JWT tokens of the
-  `Simple JWT <simplejwt_>`_.
+  returned.
+
+**TOTP (Time-based One-Time Password)**
+
+Users who have enrolled a TOTP authenticator app can use TOTP codes
+instead of e-mail codes:
+
+* The Code Token request works the same way: The user submits username
+  and password to ``POST /get-code/``.  The returned Code Token carries
+  a ``typ: "totp"`` claim; no e-mail is sent.
+
+* The user opens their authenticator app, reads the 6-digit code, and
+  sends it together with the Code Token to ``POST /auth/``.  If both
+  are correct an Authentication Token is returned.
+
+TOTP enrollment is handled via dedicated endpoints (see `TOTP
+Enrollment`_ below).
+
+The Authentication Token is in the same format as the JWT tokens of
+`Simple JWT <simplejwt_>`_.  With default configuration it is an access
+token accompanied by a refresh token.
 
 Requirements
 ------------
@@ -45,6 +64,7 @@ Requirements
 * Django 3.2 or newer
 * Django Rest Framework
 * Simple JWT
+* pyotp 2.6 or newer
 
 Installation
 ------------
@@ -52,6 +72,18 @@ Installation
 Install the package from PyPI with::
 
   pip install drf-jwt-2fa
+
+Add ``drf_jwt_2fa`` to ``INSTALLED_APPS`` and run migrations so the
+``UserTwoFactorAuthData`` model table is created::
+
+  INSTALLED_APPS = [
+      ...
+      'drf_jwt_2fa',
+  ]
+
+Then run::
+
+  python manage.py migrate
 
 Configuration
 -------------
@@ -92,6 +124,83 @@ or by configuring each view individually::
       path('get-code-token/', obtain_code_token),
       path('get-auth-token/', obtain_auth_token),
   ]
+
+Per-User 2FA Method
+-------------------
+
+Each user has a ``preferred_2fa_auth`` field stored in the
+``UserTwoFactorAuthData`` model (or via a custom getter).  Possible
+values are:
+
+* ``""`` -- 2FA still unconfigured.
+* ``"no-2fa"`` -- 2FA explicitly disabled for the user.
+* ``"code-sender"`` -- Send a verification code via ``CODE_SENDER``
+  (e-mail by default).
+* ``"totp"`` -- Require a TOTP code from an authenticator app.
+
+For the ``""`` and ``"no-2fa"`` values the ``NO_2FA_BEHAVIOR`` setting
+controls what happens: ``"error"`` (default) rejects the login;
+``"allow"`` issues auth tokens directly without a second factor.
+
+The 2FA method is looked up via the ``PREFERRED_2FA_METHOD_GETTER``
+setting (a callable that receives a user and returns a string).  The
+default implementation reads from ``UserTwoFactorAuthData``.
+
+TOTP Enrollment
+---------------
+
+Users enroll a TOTP authenticator app using two endpoints that require
+a valid JWT access token (``Authorization: Bearer <token>``):
+
+``POST /totp/setup/``
+  Returns a ``secret`` (base32 string) and a ``provisioning_uri``
+  (``otpauth://`` URL).  Display the URI as a QR code for the user to
+  scan with their authenticator app.  Calling this endpoint again
+  generates a new pending secret.
+
+``POST /totp/confirm/``
+  Body: ``{"code": "<6-digit code from app>"}``
+
+  Verifies the first code against the pending secret.  On success,
+  activates TOTP as the user's preferred 2FA method and returns
+  ``HTTP 200``.
+
+Example enrollment flow::
+
+  # 1. Obtain an access token via the normal login flow
+  POST /get-code/ {"username": "alice", "password": "..."}  -> code_token
+  POST /auth/     {"code_token": "...", "code": "..."}      -> access token
+
+  # 2. Start TOTP setup (requires access token)
+  POST /totp/setup/
+  -> {"secret": "BASE32...", "provisioning_uri": "otpauth://totp/..."}
+
+  # 3. Scan the QR code in the authenticator app, then confirm
+  POST /totp/confirm/ {"code": "123456"}
+  -> {}   (HTTP 200 = success)
+
+  # 4. Subsequent logins use TOTP
+  POST /get-code/ {"username": "alice", "password": "..."} -> totp_code_token
+  POST /auth/     {"code_token": "...", "code": "654321"}  -> access token
+
+Custom TOTP Storage
+-------------------
+
+If you store TOTP secrets in your own model instead of
+``UserTwoFactorAuthData``, point the two getter settings at your own
+callables::
+
+  JWT2FA_AUTH = {
+      'TOTP_SECRET_GETTER': 'myapp.totp.get_totp_secret',
+      'PREFERRED_2FA_METHOD_GETTER': 'myapp.totp.get_preferred_method',
+  }
+
+Each callable receives a user instance and must return:
+
+* ``TOTP_SECRET_GETTER(user)`` -> ``str | None`` -- the active TOTP
+  secret (base32), or ``None`` if the user is not using TOTP.
+* ``PREFERRED_2FA_METHOD_GETTER(user)`` -> ``str`` -- one of ``""``,
+  ``"no-2fa"``, ``"code-sender"``, or ``"totp"``.
 
 Additional Settings
 -------------------
@@ -155,6 +264,33 @@ available settings with their default values::
       # Set to this to a (translated) string to override the default
       # message body of the e-mail sender
       'EMAIL_SENDER_BODY_OVERRIDE': None,
+
+      # Callable (user) -> str | None returning the active TOTP secret
+      # for a user, or None if the user is not using TOTP.
+      'TOTP_SECRET_GETTER': 'drf_jwt_2fa.totp.get_totp_secret_for_user',
+
+      # Callable (user) -> str returning the user's preferred 2FA method
+      # ("", "no-2fa", "code-sender", or "totp").
+      'PREFERRED_2FA_METHOD_GETTER': (
+          'drf_jwt_2fa.totp.get_preferred_2fa_method_for_user'
+      ),
+
+      # Fallback method returned by the default PREFERRED_2FA_METHOD_GETTER
+      # when a user has no UserTwoFactorAuthData record or their method is
+      # "" (NOT_CONFIGURED).  Defaults to "code-sender".
+      'DEFAULT_2FA_AUTH_METHOD': 'code-sender',
+
+      # What to do when a user's preferred method is "" or "no-2fa":
+      # "error" raises a PermissionDenied (HTTP 403, default);
+      # "allow" issues auth tokens directly without a second factor.
+      'NO_2FA_BEHAVIOR': 'error',
+
+      # Issuer name shown in authenticator apps during TOTP enrollment
+      'TOTP_ISSUER_NAME': 'drf-jwt-2fa',
+
+      # How many 30-second time steps around the current time are accepted
+      # when verifying a TOTP code (to compensate for clock skew)
+      'TOTP_VALID_WINDOW': 1,
   }
 
 Login Signal

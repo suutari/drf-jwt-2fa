@@ -4,6 +4,8 @@ Django Rest Framework JWT 2FA Change Log
 Unreleased
 ----------
 
+* Add TOTP (Time-based One-Time Password) support
+
 * Fire ``user_logged_in`` signal on successful authentication
 
   * Note: This updates ``user.last_login`` by default
