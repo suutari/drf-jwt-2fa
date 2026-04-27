@@ -5,6 +5,8 @@ import pytest
 
 from drf_jwt_2fa.models import TwoFactorAuthMethod, UserTwoFactorAuthData
 from drf_jwt_2fa.totp import (
+    decrypt_totp_secret,
+    encrypt_totp_secret,
     generate_totp_secret,
     get_preferred_2fa_method_for_user,
     get_totp_provisioning_uri,
@@ -27,6 +29,27 @@ def test_generate_totp_secret_returns_32_char_base32():
 def test_generate_totp_secret_is_random():
     secrets = {generate_totp_secret() for _ in range(5)}
     assert len(secrets) == 5
+
+
+def test_encrypt_decrypt_roundtrip():
+    secret = generate_totp_secret()
+    ciphertext = encrypt_totp_secret(secret)
+    assert ciphertext != secret
+    assert decrypt_totp_secret(ciphertext) == secret
+
+
+def test_encrypt_produces_different_ciphertext_each_time():
+    """Fernet uses a random IV so the same plaintext encrypts differently."""
+    secret = generate_totp_secret()
+    assert encrypt_totp_secret(secret) != encrypt_totp_secret(secret)
+
+
+def test_decrypt_returns_none_for_empty_string():
+    assert decrypt_totp_secret("") is None
+
+
+def test_decrypt_returns_none_for_invalid_ciphertext():
+    assert decrypt_totp_secret("not-valid-fernet-token") is None
 
 
 def test_verify_totp_code_with_valid_code():
@@ -91,7 +114,7 @@ def test_get_totp_secret_for_user_returns_none_when_method_is_code_sender():
     UserTwoFactorAuthData.objects.create(
         user=user,
         preferred_2fa_auth=TwoFactorAuthMethod.CODE_SENDER,
-        totp_secret=secret,
+        totp_secret=encrypt_totp_secret(secret),
     )
     assert get_totp_secret_for_user(user) is None
 
@@ -103,7 +126,7 @@ def test_get_totp_secret_for_user_returns_secret_when_method_is_totp():
     UserTwoFactorAuthData.objects.create(
         user=user,
         preferred_2fa_auth=TwoFactorAuthMethod.TOTP,
-        totp_secret=secret,
+        totp_secret=encrypt_totp_secret(secret),
     )
     assert get_totp_secret_for_user(user) == secret
 
@@ -144,6 +167,6 @@ def test_get_preferred_2fa_method_returns_totp():
     UserTwoFactorAuthData.objects.create(
         user=user,
         preferred_2fa_auth=TwoFactorAuthMethod.TOTP,
-        totp_secret=generate_totp_secret(),
+        totp_secret=encrypt_totp_secret(generate_totp_secret()),
     )
     assert get_preferred_2fa_method_for_user(user) == "totp"

@@ -48,7 +48,7 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        max_length=64,
+                        max_length=200,
                         verbose_name="TOTP secret",
                     ),
                 ),
@@ -57,7 +57,7 @@ class Migration(migrations.Migration):
                     models.CharField(
                         blank=True,
                         default="",
-                        max_length=64,
+                        max_length=200,
                         verbose_name="TOTP secret (pending enrollment)",
                     ),
                 ),

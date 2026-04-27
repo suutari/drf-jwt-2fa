@@ -5,7 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.utils.module_loading import import_string
 
-from .utils import derive_key
+from .utils import derive_key, derive_key_bytes
 
 
 @runtime_checkable
@@ -62,6 +62,12 @@ def _get_default_settings() -> dict[str, object]:
         # How many 30-second time steps around the current time to accept
         # when verifying a TOTP code (to compensate for clock skew)
         "TOTP_VALID_WINDOW": 1,
+        # 32-byte key used to encrypt TOTP secrets at rest.  Defaults to a
+        # key derived from SECRET_KEY.  Set this explicitly to rotate the
+        # encryption key independently of SECRET_KEY.
+        "TOTP_ENCRYPTION_KEY": derive_key_bytes(
+            "2fa-totp-enc", settings.SECRET_KEY
+        ),
     }
 
 
@@ -96,6 +102,7 @@ class ApiSettings:
     NO_2FA_BEHAVIOR: str
     TOTP_ISSUER_NAME: str
     TOTP_VALID_WINDOW: int
+    TOTP_ENCRYPTION_KEY: bytes
 
     def __getattr__(self, name: str) -> object:
         if name not in type(self).__annotations__:

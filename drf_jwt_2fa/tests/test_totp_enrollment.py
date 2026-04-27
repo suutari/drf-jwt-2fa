@@ -5,6 +5,7 @@ from rest_framework import status
 from rest_framework_simplejwt.tokens import AccessToken
 
 from drf_jwt_2fa.models import TwoFactorAuthMethod, UserTwoFactorAuthData
+from drf_jwt_2fa.totp import decrypt_totp_secret
 
 from .factories import get_user
 from .utils import check_auth_token, get_api_client
@@ -54,7 +55,9 @@ def test_totp_setup_stores_pending_secret():
     result = client.post(reverse("totp-setup"))
     assert result.status_code == status.HTTP_200_OK
     data = UserTwoFactorAuthData.objects.get(user=user)
-    assert data.totp_secret_pending == result.data["secret"]
+    assert (
+        decrypt_totp_secret(data.totp_secret_pending) == result.data["secret"]
+    )
     # Preferred method must not yet be changed
     assert data.preferred_2fa_auth != TwoFactorAuthMethod.TOTP
 
@@ -70,7 +73,9 @@ def test_totp_setup_overwrites_previous_pending_secret():
     # The two calls must produce different secrets
     assert result1.data["secret"] != result2.data["secret"]
     data = UserTwoFactorAuthData.objects.get(user=user)
-    assert data.totp_secret_pending == result2.data["secret"]
+    assert (
+        decrypt_totp_secret(data.totp_secret_pending) == result2.data["secret"]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -109,7 +114,7 @@ def test_totp_confirm_activates_totp_for_user():
 
     data = UserTwoFactorAuthData.objects.get(user=user)
     assert data.preferred_2fa_auth == TwoFactorAuthMethod.TOTP
-    assert data.totp_secret == secret
+    assert decrypt_totp_secret(data.totp_secret) == secret
     assert data.totp_secret_pending == ""
 
 

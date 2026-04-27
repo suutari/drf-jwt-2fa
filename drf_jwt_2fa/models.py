@@ -47,13 +47,13 @@ class UserTwoFactorAuthData(models.Model):
         verbose_name=_("preferred 2FA method"),
     )
     totp_secret = models.CharField(
-        max_length=64,
+        max_length=200,
         blank=True,
         default="",
         verbose_name=_("TOTP secret"),
     )
     totp_secret_pending = models.CharField(
-        max_length=64,
+        max_length=200,
         blank=True,
         default="",
         verbose_name=_("TOTP secret (pending enrollment)"),

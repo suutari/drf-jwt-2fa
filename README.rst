@@ -291,6 +291,11 @@ available settings with their default values::
       # How many 30-second time steps around the current time are accepted
       # when verifying a TOTP code (to compensate for clock skew)
       'TOTP_VALID_WINDOW': 1,
+
+      # 32-byte key used to encrypt TOTP secrets at rest.  Defaults to a
+      # key derived from SECRET_KEY.  Set this explicitly to rotate the
+      # encryption key independently of SECRET_KEY.
+      'TOTP_ENCRYPTION_KEY': derive_key_bytes('2fa-totp-enc', SECRET_KEY),
   }
 
 Login Signal
