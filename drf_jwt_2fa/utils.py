@@ -1,5 +1,6 @@
 import base64
 import hashlib
+import hmac
 
 from django.contrib.auth.models import AbstractBaseUser
 from rest_framework import exceptions
@@ -13,15 +14,21 @@ def check_user_validity(user: AbstractBaseUser) -> None:
         raise exceptions.PermissionDenied()
 
 
-def hash_string(string: str) -> str:
+def derive_key(name: str, key: str) -> str:
     """
-    Calculate a SHA-256 hash of given string encoded to UTF-8.
+    Derive a domain-separated key from the given key and name.
 
-    The resulting hash is returned as a base64-encoded string without
-    padding characters.
+    Uses HMAC-SHA256 with ``key`` as the secret and ``name`` as the
+    message to produce a unique derived key per named purpose.  This
+    ensures that keys derived for different names are cryptographically
+    independent even when they share the same base key.
     """
-    hash_bytes = hashlib.sha256(string.encode("utf-8")).digest()
-    return base64.b64encode(hash_bytes).rstrip(b"=").decode("ascii")
+    mac = hmac.new(
+        key.encode("utf-8"),
+        msg=name.encode("utf-8"),
+        digestmod=hashlib.sha256,
+    )
+    return base64.b64encode(mac.digest()).rstrip(b"=").decode("ascii")
 
 
 def get_code_token_hash(token: str, prefix_len: int = 81) -> str:

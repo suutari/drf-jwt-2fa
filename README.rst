@@ -107,10 +107,10 @@ available settings with their default values::
       'CODE_CHARACTERS': '0123456789',
 
       # Secret key to use for signing the Code Tokens
-      'CODE_TOKEN_SECRET_KEY': hash_string('2fa-code-' + settings.SECRET_KEY),
+      'CODE_TOKEN_SECRET_KEY': derive_key('2fa-code', settings.SECRET_KEY),
 
       # Secret string to extend the verification code with
-      'CODE_EXTENSION_SECRET': hash_string('2fa-ext-' + settings.SECRET_KEY),
+      'CODE_EXTENSION_SECRET': derive_key('2fa-ext', settings.SECRET_KEY),
 
       # How long the code token is valid
       'CODE_EXPIRATION_TIME': datetime.timedelta(minutes=5),
