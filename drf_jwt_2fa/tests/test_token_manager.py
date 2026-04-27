@@ -4,6 +4,7 @@ import time
 from unittest.mock import patch
 
 import freezegun
+import pyotp
 import pytest
 from django.core import mail
 from django.core.cache import cache
@@ -15,12 +16,18 @@ from drf_jwt_2fa.exceptions import (
     TokenAlreadyUsedError,
     TooManyAuthAttemptsError,
     TooManyCodeTokensError,
+    TwoFactorAuthNotConfiguredError,
     VerificationCodeSendingError,
 )
 from drf_jwt_2fa.sending import CodeSendingError
 from drf_jwt_2fa.token_manager import CodeTokenManager
+from drf_jwt_2fa.totp import generate_totp_secret
 
-from .factories import get_user
+from .factories import (
+    get_user,
+    get_user_with_code_sender_2fa,
+    get_user_with_totp_2fa,
+)
 from .utils import (
     OverrideJwt2faSettings,
     check_code_token,
@@ -36,7 +43,7 @@ def test_create_code_token():
 
     mail_outbox_size_before = len(mail.outbox)
 
-    token = manager.create_code_token(get_user())
+    token = manager.create_code_token(get_user_with_code_sender_2fa())
 
     # Check sent mails
     assert len(mail.outbox) == mail_outbox_size_before + 1
@@ -59,7 +66,7 @@ def test_create_code_token():
 def test_create_code_token_uses_password_hasher_for_vch(hasher, prefix):
     with override_settings(PASSWORD_HASHERS=[hasher]):
         manager = CodeTokenManager()
-        token = manager.create_code_token(get_user())
+        token = manager.create_code_token(get_user_with_code_sender_2fa())
         payload = check_code_token(token)
         assert payload["vch"].startswith(prefix)
 
@@ -71,7 +78,7 @@ def test_create_code_token_uses_configured_from_address():
 
     mail_outbox_size_before = len(mail.outbox)
 
-    manager.create_code_token(get_user())
+    manager.create_code_token(get_user_with_code_sender_2fa())
 
     assert len(mail.outbox) == mail_outbox_size_before + 1
     assert mail.outbox[-1].from_email == "no-reply@example.com"
@@ -84,7 +91,9 @@ def test_create_code_token_with_no_email():
     mail_outbox_size_before = len(mail.outbox)
 
     with pytest.raises(VerificationCodeSendingError) as exc_info:
-        manager.create_code_token(get_user(username="no-email", email=""))
+        manager.create_code_token(
+            get_user_with_code_sender_2fa(username="no-email", email="")
+        )
     assert str(exc_info.value) == (
         "Verification code sending failed: No e-mail address known"
     )
@@ -100,7 +109,7 @@ def test_create_code_token_with_email_send_error(mocked_send_mail):
     manager = CodeTokenManager()
 
     with pytest.raises(VerificationCodeSendingError) as exc_info:
-        manager.create_code_token(get_user())
+        manager.create_code_token(get_user_with_code_sender_2fa())
     assert str(exc_info.value) == (
         "Verification code sending failed: Unable to send e-mail"
     )
@@ -120,7 +129,7 @@ def test_create_code_token_with_custom_sender_raising_unknown_error(caplog):
             caplog.at_level("ERROR", logger="drf_jwt_2fa.sending"),
             pytest.raises(VerificationCodeSendingError) as exc_info,
         ):
-            manager.create_code_token(get_user())
+            manager.create_code_token(get_user_with_code_sender_2fa())
 
     error = exc_info.value
     assert str(error) == "Verification code sending failed: Unknown error"
@@ -141,7 +150,7 @@ def test_create_code_token_with_custom_sender_raising_code_sending_error():
     with OverrideJwt2faSettings(CODE_SENDER=failing_code_sender):
         manager = CodeTokenManager()
         with pytest.raises(VerificationCodeSendingError) as exc_info:
-            manager.create_code_token(get_user())
+            manager.create_code_token(get_user_with_code_sender_2fa())
         assert "Custom code sending error" in str(exc_info.value)
         assert exc_info.value.status_code == status.HTTP_501_NOT_IMPLEMENTED
 
@@ -149,7 +158,7 @@ def test_create_code_token_with_custom_sender_raising_code_sending_error():
 @pytest.mark.django_db
 def test_check_code_token_and_code_success():
     manager = CodeTokenManager()
-    user = get_user()
+    user = get_user_with_code_sender_2fa()
     token = manager.create_code_token(user)
     code = get_verification_code_from_mailbox()
     user_id = manager.check_code_token_and_code(token, code)
@@ -159,7 +168,7 @@ def test_check_code_token_and_code_success():
 @pytest.mark.django_db
 def test_check_code_token_and_code_cannot_be_reused():
     manager = CodeTokenManager()
-    user = get_user()
+    user = get_user_with_code_sender_2fa()
     token = manager.create_code_token(user)
     code = get_verification_code_from_mailbox()
 
@@ -183,7 +192,7 @@ def test_check_code_token_reuse_check_is_atomic():
     should trigger the race condition.
     """
     manager = CodeTokenManager()
-    user = get_user()
+    user = get_user_with_code_sender_2fa()
     token = manager.create_code_token(user)
     code = get_verification_code_from_mailbox()
 
@@ -237,11 +246,11 @@ def test_check_code_token_reuse_check_is_atomic():
 @pytest.mark.django_db
 def test_check_code_token_and_code_with_invalid_token():
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    token = manager.create_code_token(get_user_with_code_sender_2fa())
     code = get_verification_code_from_mailbox()
     (header, payload_before, signature) = token.split(".")
     payload = decode_jwt_part(payload_before)
-    payload["uid"] = 0
+    payload["uid"] = "0"
     new_token = header + "." + encode_jwt_part(payload) + "." + signature
     check_code_token(new_token, user_id=0, verify=False)
     with pytest.raises(Exception) as exc_info:
@@ -254,7 +263,7 @@ def test_check_code_token_and_code_with_invalid_token():
 @pytest.mark.django_db
 def test_check_code_token_and_code_with_invalid_code():
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    token = manager.create_code_token(get_user_with_code_sender_2fa())
     correct_code = get_verification_code_from_mailbox()
     assert len(correct_code) == 7
     invalid_code = "1234567" if correct_code != "1234567" else "7654321"
@@ -268,7 +277,7 @@ def test_check_code_token_and_code_with_invalid_code():
 @OverrideJwt2faSettings(CODE_EXPIRATION_TIME=datetime.timedelta(seconds=-1))
 def test_check_code_token_and_code_with_expired_token():
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    token = manager.create_code_token(get_user_with_code_sender_2fa())
     assert decode_jwt_part(token.split(".")[1])["exp"] < time.time()
     code = get_verification_code_from_mailbox()
     with pytest.raises(exceptions.PermissionDenied) as exc_info:
@@ -281,7 +290,7 @@ def test_check_code_token_and_code_with_expired_token():
 @OverrideJwt2faSettings(MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN=3)
 def test_check_code_token_and_code_blocks_after_max_failed_attempts():
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    token = manager.create_code_token(get_user_with_code_sender_2fa())
     correct_code = get_verification_code_from_mailbox()
     wrong_code = "0000000" if correct_code != "0000000" else "1111111"
 
@@ -301,7 +310,7 @@ def test_check_code_token_and_code_blocks_after_max_failed_attempts():
 @OverrideJwt2faSettings(MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN=3)
 def test_check_code_token_and_code_succeeds_within_attempt_limit():
     manager = CodeTokenManager()
-    user = get_user()
+    user = get_user_with_code_sender_2fa()
     token = manager.create_code_token(user)
     correct_code = get_verification_code_from_mailbox()
     wrong_code = "0000000" if correct_code != "0000000" else "1111111"
@@ -319,7 +328,7 @@ def test_check_code_token_and_code_succeeds_within_attempt_limit():
 @OverrideJwt2faSettings(MAX_ACTIVE_CODE_TOKENS_PER_USER=2)
 def test_create_code_token_blocks_when_active_token_limit_reached():
     manager = CodeTokenManager()
-    user = get_user()
+    user = get_user_with_code_sender_2fa()
 
     # Create up to the limit
     manager.create_code_token(user)
@@ -341,7 +350,7 @@ def test_create_code_token_blocks_when_active_token_limit_reached():
 )
 def test_create_code_token_allows_new_token_after_previous_ones_expire():
     manager = CodeTokenManager()
-    user = get_user()
+    user = get_user_with_code_sender_2fa()
 
     manager.create_code_token(user)
     manager.create_code_token(user)
@@ -358,8 +367,8 @@ def test_create_code_token_allows_new_token_after_previous_ones_expire():
 @OverrideJwt2faSettings(MAX_ACTIVE_CODE_TOKENS_PER_USER=2)
 def test_create_code_token_limit_is_per_user():
     manager = CodeTokenManager()
-    user1 = get_user(username="user1")
-    user2 = get_user(username="user2")
+    user1 = get_user_with_code_sender_2fa(username="user1")
+    user2 = get_user_with_code_sender_2fa(username="user2")
 
     # Fill up the limit for user1
     manager.create_code_token(user1)
@@ -375,7 +384,7 @@ def test_create_code_token_limit_is_per_user():
 def test_failed_auth_attempt_counter_uses_add_on_first_attempt():
     """First failed attempt recorded via cache.add (key absent)."""
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    token = manager.create_code_token(get_user_with_code_sender_2fa())
     correct_code = get_verification_code_from_mailbox()
     wrong_code = "0000000" if correct_code != "0000000" else "1111111"
 
@@ -401,7 +410,7 @@ def test_failed_auth_attempt_counter_uses_atomic_add_and_incr():
     exactly once even under concurrent load.
     """
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    token = manager.create_code_token(get_user_with_code_sender_2fa())
     correct_code = get_verification_code_from_mailbox()
     wrong_code = "0000000" if correct_code != "0000000" else "1111111"
 
@@ -427,7 +436,7 @@ def test_create_code_token_no_limit_when_max_active_tokens_is_none():
     """No active-token limit is enforced when MAX_ACTIVE_CODE_TOKENS_PER_USER
     is None."""
     manager = CodeTokenManager()
-    user = get_user()
+    user = get_user_with_code_sender_2fa()
     for _ in range(10):
         token = manager.create_code_token(user)
     assert token
@@ -439,7 +448,7 @@ def test_check_code_token_and_code_no_attempt_limit_when_setting_is_none():
     """No attempt limit is enforced when MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN
     is None."""
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    token = manager.create_code_token(get_user_with_code_sender_2fa())
     correct_code = get_verification_code_from_mailbox()
     wrong_code = "0000000" if correct_code != "0000000" else "1111111"
 
@@ -458,7 +467,7 @@ def test_record_failed_auth_attempt_skipped_when_setting_is_none():
     """_record_failed_auth_attempt does nothing when
     MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN is None."""
     manager = CodeTokenManager()
-    token = manager.create_code_token(get_user())
+    token = manager.create_code_token(get_user_with_code_sender_2fa())
     correct_code = get_verification_code_from_mailbox()
     wrong_code = "0000000" if correct_code != "0000000" else "1111111"
 
@@ -471,3 +480,138 @@ def test_record_failed_auth_attempt_skipped_when_setting_is_none():
 
     mock_set.assert_not_called()
     mock_add.assert_not_called()
+
+
+# ---------------------------------------------------------------------------
+# TOTP flow tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+def test_create_code_token_for_totp_user_sends_no_email():
+    secret = generate_totp_secret()
+    user = get_user_with_totp_2fa(totp_secret=secret)
+    manager = CodeTokenManager()
+
+    mail_outbox_size_before = len(mail.outbox)
+    token = manager.create_code_token(user)
+
+    assert token is not None
+    assert len(mail.outbox) == mail_outbox_size_before
+
+
+@pytest.mark.django_db
+def test_create_code_token_for_totp_user_has_totp_type():
+    secret = generate_totp_secret()
+    user = get_user_with_totp_2fa(totp_secret=secret)
+    manager = CodeTokenManager()
+
+    token = manager.create_code_token(user)
+
+    payload = check_code_token(token)
+    assert payload["typ"] == "totp"
+    assert "vch" not in payload
+    assert "vcn" not in payload
+
+
+@pytest.mark.django_db
+def test_check_code_token_and_code_success_with_totp():
+    secret = generate_totp_secret()
+    user = get_user_with_totp_2fa(totp_secret=secret)
+    manager = CodeTokenManager()
+
+    token = manager.create_code_token(user)
+    code = pyotp.TOTP(secret).now()
+    user_id = manager.check_code_token_and_code(token, code)
+
+    assert user_id == str(user.pk)
+
+
+@pytest.mark.django_db
+def test_check_code_token_and_code_fails_with_wrong_totp():
+    secret = generate_totp_secret()
+    user = get_user_with_totp_2fa(totp_secret=secret)
+    manager = CodeTokenManager()
+
+    token = manager.create_code_token(user)
+    correct_code = pyotp.TOTP(secret).now()
+    wrong_code = "000000" if correct_code != "000000" else "111111"
+
+    with pytest.raises(exceptions.AuthenticationFailed):
+        manager.check_code_token_and_code(token, wrong_code)
+
+
+@pytest.mark.django_db
+def test_check_totp_code_token_cannot_be_reused():
+    secret = generate_totp_secret()
+    user = get_user_with_totp_2fa(totp_secret=secret)
+    manager = CodeTokenManager()
+
+    token = manager.create_code_token(user)
+    code = pyotp.TOTP(secret).now()
+
+    user_id = manager.check_code_token_and_code(token, code)
+    assert user_id == str(user.pk)
+
+    with pytest.raises(TokenAlreadyUsedError):
+        manager.check_code_token_and_code(token, code)
+
+
+# ---------------------------------------------------------------------------
+# Unauthenticated 2FA behaviour tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.django_db
+@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="error", DEFAULT_2FA_AUTH_METHOD="")
+def test_create_code_token_raises_when_2fa_not_configured():
+    user = get_user()  # no UserTwoFactorAuthData record
+    manager = CodeTokenManager()
+    with pytest.raises(TwoFactorAuthNotConfiguredError) as exc_info:
+        manager.create_code_token(user)
+    assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
+
+
+@pytest.mark.django_db
+@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="allow", DEFAULT_2FA_AUTH_METHOD="")
+def test_create_code_token_returns_none_when_2fa_not_configured_and_allow():
+    user = get_user()  # no UserTwoFactorAuthData record
+    manager = CodeTokenManager()
+    result = manager.create_code_token(user)
+    assert result is None
+
+
+@pytest.mark.django_db
+def test_check_totp_code_token_fails_when_user_deleted():
+    """TOTP verification returns AuthenticationFailed if user was deleted."""
+    secret = generate_totp_secret()
+    user = get_user_with_totp_2fa(totp_secret=secret)
+    manager = CodeTokenManager()
+
+    token = manager.create_code_token(user)
+    code = pyotp.TOTP(secret).now()
+
+    user.delete()
+
+    with pytest.raises(exceptions.AuthenticationFailed):
+        manager.check_code_token_and_code(token, code)
+
+
+@pytest.mark.django_db
+def test_check_totp_code_token_fails_when_secret_missing():
+    """TOTP verification returns AuthenticationFailed when TOTP_SECRET_GETTER
+    returns None (e.g. user record was reset after the token was issued)."""
+    secret = generate_totp_secret()
+    user = get_user_with_totp_2fa(totp_secret=secret)
+    manager = CodeTokenManager()
+
+    token = manager.create_code_token(user)
+    code = pyotp.TOTP(secret).now()
+
+    # Remove the TOTP secret from the DB after the token was created
+    from drf_jwt_2fa.models import UserTwoFactorAuthData
+
+    UserTwoFactorAuthData.objects.filter(user=user).update(totp_secret="")
+
+    with pytest.raises(exceptions.AuthenticationFailed):
+        manager.check_code_token_and_code(token, code)

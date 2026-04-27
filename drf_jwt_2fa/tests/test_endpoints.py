@@ -1,3 +1,4 @@
+import pyotp
 import pytest
 from django.contrib.auth.backends import ModelBackend
 from django.contrib.auth.models import update_last_login
@@ -6,8 +7,15 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
 
-from .factories import get_user
+from drf_jwt_2fa.totp import generate_totp_secret
+
+from .factories import (
+    get_user,
+    get_user_with_code_sender_2fa,
+    get_user_with_totp_2fa,
+)
 from .utils import (
+    OverrideJwt2faSettings,
     check_auth_token,
     check_code_token,
     get_api_client,
@@ -22,7 +30,7 @@ def test_get_code_token_success():
 
 
 def get_code_token():
-    get_user(username="testuser", password="a42")
+    get_user_with_code_sender_2fa(username="testuser", password="a42")
     client = get_api_client()
     result = client.post(
         reverse("get-code"), data={"username": "testuser", "password": "a42"}
@@ -204,3 +212,78 @@ def test_auth_token_with_custom_obtainer():
     assert result.status_code == status.HTTP_200_OK
     token = result.data["token"]
     check_auth_token(token, token_type="sliding")
+
+
+@pytest.mark.django_db
+def test_get_code_token_for_totp_user_succeeds():
+    secret = generate_totp_secret()
+    get_user_with_totp_2fa(totp_secret=secret)
+    client = get_api_client()
+    result = client.post(
+        reverse("get-code"), data={"username": "testuser", "password": "a42"}
+    )
+    assert result.status_code == status.HTTP_200_OK
+    assert "token" in result.data
+    payload = check_code_token(result.data["token"])
+    assert payload["typ"] == "totp"
+
+
+@pytest.mark.django_db
+def test_auth_token_success_with_totp():
+    secret = generate_totp_secret()
+    get_user_with_totp_2fa(totp_secret=secret)
+    client = get_api_client()
+    code_token_result = client.post(
+        reverse("get-code"), data={"username": "testuser", "password": "a42"}
+    )
+    code_token = code_token_result.data["token"]
+    code = pyotp.TOTP(secret).now()
+    result = client.post(
+        reverse("auth"), data={"code_token": code_token, "code": code}
+    )
+    assert result.status_code == status.HTTP_200_OK
+    assert "access" in result.data
+    check_auth_token(result.data["access"])
+
+
+@pytest.mark.django_db
+def test_auth_token_fails_with_wrong_totp():
+    secret = generate_totp_secret()
+    get_user_with_totp_2fa(totp_secret=secret)
+    client = get_api_client()
+    code_token_result = client.post(
+        reverse("get-code"), data={"username": "testuser", "password": "a42"}
+    )
+    code_token = code_token_result.data["token"]
+    correct_code = pyotp.TOTP(secret).now()
+    wrong_code = "000000" if correct_code != "000000" else "111111"
+    result = client.post(
+        reverse("auth"), data={"code_token": code_token, "code": wrong_code}
+    )
+    assert result.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="error", DEFAULT_2FA_AUTH_METHOD="")
+def test_get_code_token_fails_when_2fa_not_configured():
+    get_user(username="testuser", password="a42")
+    client = get_api_client()
+    result = client.post(
+        reverse("get-code"), data={"username": "testuser", "password": "a42"}
+    )
+    assert result.status_code == status.HTTP_403_FORBIDDEN
+    assert result.data["detail"].code == "2fa_not_configured"
+
+
+@pytest.mark.django_db
+@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="allow", DEFAULT_2FA_AUTH_METHOD="")
+def test_get_code_token_returns_auth_token_when_2fa_not_configured_and_allow():
+    get_user(username="testuser", password="a42")
+    client = get_api_client()
+    result = client.post(
+        reverse("get-code"), data={"username": "testuser", "password": "a42"}
+    )
+    assert result.status_code == status.HTTP_200_OK
+    assert "access" in result.data
+    assert "refresh" in result.data
+    check_auth_token(result.data["access"])

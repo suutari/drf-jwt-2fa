@@ -53,8 +53,12 @@ class CodeTokenSerializer(Jwt2faSerializer):
         return user
 
     def _create_tokens(self, user: AbstractBaseUser) -> dict[str, str]:
+        code_token = self.token_manager.create_code_token(user)
+        if code_token is None:
+            # NO_2FA_BEHAVIOR == "allow": skip second factor
+            return _create_auth_tokens_for_user(user, self.context)
         return {
-            "token": self.token_manager.create_code_token(user),
+            "token": code_token,
         }
 
 
@@ -82,23 +86,29 @@ class AuthTokenSerializer(Jwt2faSerializer):
         return user
 
     def _create_tokens(self, user: AbstractBaseUser) -> dict[str, str]:
-        token = self.get_token_class().for_user(user)
-        drf_request = self.context.get("request")
-        request = drf_request._request if drf_request else None
-        user_logged_in.send(sender=type(user), request=request, user=user)
-        if hasattr(token, "access_token"):
-            # The keys are 'access' and 'refresh' by default
-            access_key = api_settings.AUTH_RESULT_ACCESS_TOKEN_KEY
-            refresh_key = api_settings.AUTH_RESULT_REFRESH_TOKEN_KEY
-            return {
-                access_key: str(token.access_token),
-                refresh_key: str(token),
-            }
-        token_key = api_settings.AUTH_RESULT_OTHER_TOKEN_KEY
-        return {token_key: str(token)}
+        return _create_auth_tokens_for_user(user, self.context)
 
-    @classmethod
-    def get_token_class(cls):
-        serializer_name = jwt_settings.api_settings.TOKEN_OBTAIN_SERIALIZER
-        token_serializer = import_string(serializer_name)
-        return token_serializer.token_class
+
+def _create_auth_tokens_for_user(
+    user: AbstractBaseUser, context: dict[str, Any]
+) -> dict[str, str]:
+    token = _get_token_class().for_user(user)
+    drf_request = context.get("request")
+    request = drf_request._request if drf_request else None
+    user_logged_in.send(sender=type(user), request=request, user=user)
+    if hasattr(token, "access_token"):
+        # The keys are 'access' and 'refresh' by default
+        access_key = api_settings.AUTH_RESULT_ACCESS_TOKEN_KEY
+        refresh_key = api_settings.AUTH_RESULT_REFRESH_TOKEN_KEY
+        return {
+            access_key: str(token.access_token),
+            refresh_key: str(token),
+        }
+    token_key = api_settings.AUTH_RESULT_OTHER_TOKEN_KEY
+    return {token_key: str(token)}
+
+
+def _get_token_class():
+    serializer_name = jwt_settings.api_settings.TOKEN_OBTAIN_SERIALIZER
+    token_serializer = import_string(serializer_name)
+    return token_serializer.token_class

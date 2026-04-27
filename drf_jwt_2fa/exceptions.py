@@ -39,3 +39,10 @@ class VerificationCodeSendingError(exceptions.APIException):
             code=code,
             **kwargs,
         )
+
+
+class TwoFactorAuthNotConfiguredError(exceptions.PermissionDenied):
+    default_code = "2fa_not_configured"
+    default_detail = _(
+        "Two-factor authentication is not configured for this account."
+    )

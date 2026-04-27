@@ -47,19 +47,26 @@ def check_auth_token(
 
 def check_code_token(token, user_id=None, verify=True):
     payload = check_token_basics_and_get_payload(token)
-    assert sorted(payload.keys()) == ["exp", "iat", "jti", "uid", "vch", "vcn"]
+    typ = payload.get("typ")
+    if typ == "code-sender":
+        keys = set(payload.keys())
+        assert keys == {"exp", "iat", "jti", "typ", "uid", "vch", "vcn"}
+    else:
+        assert typ == "totp"
+        assert set(payload.keys()) == {"exp", "iat", "jti", "typ", "uid"}
     assert isinstance(payload["jti"], str)
     assert isinstance(payload["exp"], int)
     assert isinstance(payload["iat"], int)
-    assert isinstance(payload["uid"], (int, str))
-    assert isinstance(payload["vch"], str)
-    assert isinstance(payload["vcn"], str)
+    assert isinstance(payload["uid"], str)
     assert len(payload["jti"]) == 22  # 16 bytes base64 encoded without padding
     assert payload["exp"] > time.time()
     assert payload["iat"] <= time.time()
     if user_id is not None:
-        assert payload["uid"] == user_id
-    assert len(payload["vcn"]) == 10
+        assert payload["uid"] == str(user_id)
+    if typ == "code-sender":
+        assert isinstance(payload["vch"], str)
+        assert isinstance(payload["vcn"], str)
+        assert len(payload["vcn"]) == 10
     if verify:
         key = api_settings.CODE_TOKEN_SECRET_KEY
         verified = jwt.decode(token, key, algorithms=["HS256"])
