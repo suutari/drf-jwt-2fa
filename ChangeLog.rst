@@ -1,6 +1,16 @@
 Django Rest Framework JWT 2FA Change Log
 ========================================
 
+Unreleased
+----------
+
+* Add type annotations to all public and private methods
+
+* Pass ``request`` to ``authenticate()`` in ``CodeTokenSerializer`` to
+  support authentication backends that require the request object
+
+* Normalize user primary key to string in code token payload
+
 1.0.0 (Released 2026-04-24 19:54 +0200)
 ---------------------------------------
 

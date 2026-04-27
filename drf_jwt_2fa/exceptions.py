@@ -27,7 +27,13 @@ class VerificationCodeSendingError(exceptions.APIException):
     default_code = "verification_code_sending_failed"
     default_detail = _("Verification code sending failed: {reason}")
 
-    def __init__(self, reason, detail=None, code=None, **kwargs):
+    def __init__(
+        self,
+        reason: str | Exception,
+        detail: str | None = None,
+        code: str | None = None,
+        **kwargs: object,
+    ) -> None:
         super().__init__(
             detail=(detail or self.default_detail.format(reason=reason)),
             code=code,

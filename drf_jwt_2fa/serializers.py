@@ -1,4 +1,7 @@
+from typing import Any
+
 from django.contrib.auth import authenticate, get_user_model
+from django.contrib.auth.models import AbstractBaseUser
 from django.utils.module_loading import import_string
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt import settings as jwt_settings
@@ -12,32 +15,43 @@ from .utils import check_user_validity
 class Jwt2faSerializer(serializers.Serializer):
     token_manager_class = CodeTokenManager
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self.token_manager = self.token_manager_class()
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, str]:
         validated_attrs = super().validate(attrs)
         user = self._authenticate(validated_attrs)
         return self._create_tokens(user)
+
+    def _authenticate(
+        self, attrs: dict[str, object]
+    ) -> AbstractBaseUser:  # pragma: no cover
+        raise NotImplementedError
+
+    def _create_tokens(
+        self, user: AbstractBaseUser
+    ) -> dict[str, str]:  # pragma: no cover
+        raise NotImplementedError
 
 
 class CodeTokenSerializer(Jwt2faSerializer):
     username = serializers.CharField(required=True)
     password = PasswordField(write_only=True, required=True)
 
-    def _authenticate(self, attrs):
+    def _authenticate(self, attrs: dict[str, object]) -> AbstractBaseUser:
         credentials = {
-            "username": attrs.get("username"),
-            "password": attrs.get("password"),
+            "username": attrs["username"],
+            "password": attrs["password"],
         }
-        user = authenticate(**credentials)
+        request = self.context.get("request")
+        user = authenticate(request=request, **credentials)
         if not user:
             raise exceptions.AuthenticationFailed()
         check_user_validity(user)
         return user
 
-    def _create_tokens(self, user):
+    def _create_tokens(self, user: AbstractBaseUser) -> dict[str, str]:
         return {
             "token": self.token_manager.create_code_token(user),
         }
@@ -47,17 +61,17 @@ class AuthTokenSerializer(Jwt2faSerializer):
     code_token = serializers.CharField(required=True)
     code = PasswordField(write_only=True, required=True)
 
-    def _authenticate(self, attrs):
-        code_token = attrs.get("code_token")
-        code = attrs.get("code")
+    def _authenticate(self, attrs: dict[str, object]) -> AbstractBaseUser:
+        code_token: str = attrs["code_token"]  # type: ignore
+        code: str = attrs["code"]  # type: ignore
         user_id = self._check_code_token_and_code(code_token, code)
         user = self._get_user(user_id)
         return user
 
-    def _check_code_token_and_code(self, code_token, code):
+    def _check_code_token_and_code(self, code_token: str, code: str) -> str:
         return self.token_manager.check_code_token_and_code(code_token, code)
 
-    def _get_user(self, user_id):
+    def _get_user(self, user_id: str) -> AbstractBaseUser:
         user_model = get_user_model()
         try:
             user = user_model.objects.get(pk=user_id)
@@ -66,7 +80,7 @@ class AuthTokenSerializer(Jwt2faSerializer):
         check_user_validity(user)
         return user
 
-    def _create_tokens(self, user):
+    def _create_tokens(self, user: AbstractBaseUser) -> dict[str, str]:
         token = self.get_token_class().for_user(user)
         if hasattr(token, "access_token"):
             # The keys are 'access' and 'refresh' by default

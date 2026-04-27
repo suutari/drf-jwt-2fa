@@ -153,7 +153,7 @@ def test_check_code_token_and_code_success():
     token = manager.create_code_token(user)
     code = get_verification_code_from_mailbox()
     user_id = manager.check_code_token_and_code(token, code)
-    assert user_id == user.pk
+    assert user_id == str(user.pk)
 
 
 @pytest.mark.django_db
@@ -165,7 +165,7 @@ def test_check_code_token_and_code_cannot_be_reused():
 
     # First use succeeds
     user_id = manager.check_code_token_and_code(token, code)
-    assert user_id == user.pk
+    assert user_id == str(user.pk)
 
     # Second use with the same token and correct code is rejected
     with pytest.raises(TokenAlreadyUsedError):
@@ -273,7 +273,7 @@ def test_check_code_token_and_code_with_expired_token():
     code = get_verification_code_from_mailbox()
     with pytest.raises(exceptions.PermissionDenied) as exc_info:
         manager.check_code_token_and_code(token, code)
-    assert str(exc_info.value) == "Signature has expired."
+    assert str(exc_info.value) == "Token has expired"
     assert exc_info.value.status_code == status.HTTP_403_FORBIDDEN
 
 
@@ -312,7 +312,7 @@ def test_check_code_token_and_code_succeeds_within_attempt_limit():
             manager.check_code_token_and_code(token, wrong_code)
 
     user_id = manager.check_code_token_and_code(token, correct_code)
-    assert user_id == user.pk
+    assert user_id == str(user.pk)
 
 
 @pytest.mark.django_db

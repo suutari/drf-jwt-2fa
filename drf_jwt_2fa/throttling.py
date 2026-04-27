@@ -3,6 +3,8 @@ from hashlib import sha256 as ident_hasher
 
 from django.core.cache import cache as default_cache
 from rest_framework import throttling
+from rest_framework.request import Request
+from rest_framework.views import APIView
 
 from .settings import api_settings
 from .utils import get_code_token_hash
@@ -11,11 +13,10 @@ from .utils import get_code_token_hash
 class CodeTokenThrottler(throttling.SimpleRateThrottle):
     cache_key_template = "drf_jwt_2fa:throttle:code:{ident_hash}"
 
-    @property
-    def rate(self):
+    def get_rate(self) -> str:
         return api_settings.CODE_TOKEN_THROTTLE_RATE
 
-    def parse_rate(self, rate):
+    def parse_rate(self, rate: str | None) -> tuple[int | None, int | None]:
         if not rate:
             return (None, None)
         (num_requests_str, period_str) = rate.split("/")
@@ -23,7 +24,7 @@ class CodeTokenThrottler(throttling.SimpleRateThrottle):
         period_unit = {"s": 1, "m": 60, "h": 3600, "d": 86400}[period_str[-1]]
         return (int(num_requests_str), period_num * period_unit)
 
-    def get_cache_key(self, request, view):
+    def get_cache_key(self, request: Request, view: APIView) -> str:
         ident_bytes = self.get_ident(request).encode("utf-8")
         ident_hash = ident_hasher(ident_bytes).hexdigest()[:20]
         return self.cache_key_template.format(ident_hash=ident_hash)
@@ -33,7 +34,7 @@ class AuthTokenThrottler(throttling.BaseThrottle):
     cache = default_cache
     cache_key_template = "drf_jwt_2fa:throttle:auth:{code_token_hash}"
 
-    def allow_request(self, request, view):
+    def allow_request(self, request: Request, view: APIView) -> bool:
         key = self.get_cache_key(request, view)
         if not key:
             return True
@@ -46,10 +47,10 @@ class AuthTokenThrottler(throttling.BaseThrottle):
         self.cache.set(key, next_allowed, timeout=self.retry_wait_seconds)
         return True
 
-    def wait(self):
+    def wait(self) -> float:
         return self.wait_time
 
-    def get_cache_key(self, request, view):
+    def get_cache_key(self, request: Request, view: APIView) -> str | None:
         token = request.data.get("code_token")
         if not token:
             return None
@@ -57,5 +58,5 @@ class AuthTokenThrottler(throttling.BaseThrottle):
         return self.cache_key_template.format(code_token_hash=token_hash)
 
     @property
-    def retry_wait_seconds(self):
+    def retry_wait_seconds(self) -> float:
         return api_settings.AUTH_TOKEN_RETRY_WAIT_TIME.total_seconds()

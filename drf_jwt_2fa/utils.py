@@ -1,42 +1,30 @@
 import base64
 import hashlib
 
+from django.contrib.auth.models import AbstractBaseUser
 from rest_framework import exceptions
 
 
-def check_user_validity(user):
+def check_user_validity(user: AbstractBaseUser) -> None:
     """
     Check validity of given user.
-
-    :type user: django.contrib.auth.models.AbstractBaseUser
-    :rtype: None
     """
     if not user.is_active:
         raise exceptions.PermissionDenied()
 
 
-def _unpadded_encode(data, encoder=base64.b64encode):
-    return encoder(data).rstrip(b"=").decode("ascii")
-
-
-def hash_string(string, hasher=hashlib.sha256, formatter=_unpadded_encode):
+def hash_string(string: str) -> str:
     """
-    Calculate a hash of given string encoded to UTF-8.
+    Calculate a SHA-256 hash of given string encoded to UTF-8.
 
-    The hasher is SHA-256 is by default, but it can be changed with an
-    argument.  T binary hash returned by the hasher is converted to a
-    string with the given formatter; the default formatter returns the
-    hash as unpadded base 64 string.
-
-    :type string: str
-    :type hasher: Callable[[bytes], bytes]
-    :type formatter: Callable[[bytes], str]
-    :rtype: str
+    The resulting hash is returned as a base64-encoded string without
+    padding characters.
     """
-    return formatter(hasher(string.encode("utf-8")).digest())
+    hash_bytes = hashlib.sha256(string.encode("utf-8")).digest()
+    return base64.b64encode(hash_bytes).rstrip(b"=").decode("ascii")
 
 
-def get_code_token_hash(token, prefix_len=81):
+def get_code_token_hash(token: str, prefix_len: int = 81) -> str:
     """
     Return a short hash-like identifier for a code token.
 
@@ -52,8 +40,5 @@ def get_code_token_hash(token, prefix_len=81):
 
     Note: Even if a longer jti value is configured, the first 22
     characters should be enough for "hashing" purposes.
-
-    :type token: str
-    :rtype: str
     """
     return token[:prefix_len].split(".", 1)[-1][8:]

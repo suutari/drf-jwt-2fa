@@ -1,5 +1,6 @@
 import logging
 
+from django.contrib.auth.models import AbstractBaseUser
 from django.core.mail import send_mail
 from django.utils.translation import gettext as _
 
@@ -12,10 +13,10 @@ class CodeSendingError(Exception):
     pass
 
 
-def send_verification_code(user, code):
+def send_verification_code(user: AbstractBaseUser, code: str) -> None:
     sender = api_settings.CODE_SENDER
     try:
-        return sender(user, code)
+        sender(user, code)
     except CodeSendingError:
         raise
     except Exception as error:
@@ -23,7 +24,9 @@ def send_verification_code(user, code):
         raise CodeSendingError(_("Unknown error")) from error
 
 
-def send_verification_code_via_email(user, code):
+def send_verification_code_via_email(
+    user: AbstractBaseUser, code: str
+) -> None:
     user_email_address = getattr(user, "email", None)
 
     if not user_email_address:
