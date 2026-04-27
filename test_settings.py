@@ -5,6 +5,7 @@ DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3"}}
 INSTALLED_APPS = [
     "django.contrib.auth",
     "django.contrib.contenttypes",
+    "drf_jwt_2fa",
 ]
 
 ROOT_URLCONF = "drf_jwt_2fa.urls"

@@ -116,6 +116,7 @@ ignore = [
 "conftest.py" = ["S101"]  # Allow assert
 "drf_jwt_2fa/tests/**/*.py" = ["S101", "S106", "S107", "S301"]
 "test_settings.py" = ["S105"]  # SECRET_KEY
+"drf_jwt_2fa/migrations/**/*.py" = ["RUF012"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["drf_jwt_2fa"]
