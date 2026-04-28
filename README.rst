@@ -77,10 +77,10 @@ The URLs for the authentication API endpoints can be configured with
 something like this in an `urls.py`::
 
   import drf_jwt_2fa.urls
-  from django.conf.urls import include, url
+  from django.urls import include, path
 
   urlpatterns = [
-      url(r'^auth/', include(drf_jwt_2fa.urls)),
+      path("auth/", include(drf_jwt_2fa.urls)),
   ]
 
 or by configuring each view individually::
