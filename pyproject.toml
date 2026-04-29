@@ -64,7 +64,11 @@ dev = [
 strict = true
 pythonpath = ["."]
 DJANGO_SETTINGS_MODULE = "test_settings"
-addopts = ["--doctest-modules"]
+addopts = [
+    "--doctest-modules",
+    "--ignore=dev_settings.py",
+    "--ignore=dev_urls.py",
+]
 
 [tool.coverage.run]
 branch = true
@@ -72,7 +76,7 @@ branch = true
 [tool.coverage.report]
 precision = 1
 show_missing = true
-omit = ["conftest.py", "manage.py"]
+omit = ["conftest.py", "dev_settings.py", "dev_urls.py", "manage.py"]
 
 [tool.ruff]
 line-length = 79

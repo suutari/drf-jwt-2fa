@@ -1,11 +1,6 @@
 DEBUG = True
 SECRET_KEY = "not-so-secret-but-long-enough-to-avoid-Warnings-123"
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": "db.sqlite3",
-    },
-}
+DATABASES = {"default": {"ENGINE": "django.db.backends.sqlite3"}}
 
 INSTALLED_APPS = [
     "django.contrib.auth",
