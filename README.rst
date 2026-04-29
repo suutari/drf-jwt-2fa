@@ -156,3 +156,17 @@ available settings with their default values::
       # message body of the e-mail sender
       'EMAIL_SENDER_BODY_OVERRIDE': None,
   }
+
+Login Signal
+------------
+
+The ``user_logged_in`` signal is fired on successful authentication
+(i.e.  after the second step of the 2FA flow).  Django's built-in
+``update_last_login`` receiver is connected to this signal by default,
+so user's ``last_login`` field will be updated automatically.  If you
+want to prevent such updates, you can disconnect the receiver from the
+signal in your ``AppConfig.ready()``::
+
+  from django.contrib.auth.signals import user_logged_in
+
+  user_logged_in.disconnect(dispatch_uid="update_last_login")

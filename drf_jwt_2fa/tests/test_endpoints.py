@@ -1,5 +1,7 @@
 import pytest
 from django.contrib.auth.backends import ModelBackend
+from django.contrib.auth.models import update_last_login
+from django.contrib.auth.signals import user_logged_in
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -114,6 +116,71 @@ def test_auth_token_removed_user():
     )
     assert result.data == {"detail": "Incorrect authentication credentials."}
     assert result.status_code == status.HTTP_401_UNAUTHORIZED
+
+
+@pytest.mark.django_db
+def test_auth_token_fires_user_logged_in_signal():
+    code_token = get_code_token()
+    code = get_verification_code_from_mailbox()
+    user = get_user()
+    received = []
+
+    def receiver(**kwargs):
+        received.append(kwargs)
+
+    user_logged_in.connect(receiver)
+    try:
+        client = get_api_client()
+        result = client.post(
+            reverse("auth"), data={"code_token": code_token, "code": code}
+        )
+    finally:
+        user_logged_in.disconnect(receiver)
+    assert result.status_code == status.HTTP_200_OK
+    assert received == [
+        {
+            "signal": user_logged_in,
+            "sender": type(user),
+            "request": result.wsgi_request,
+            "user": user,
+        }
+    ]
+
+
+@pytest.mark.django_db
+def test_auth_token_updates_last_login():
+    code_token = get_code_token()
+    code = get_verification_code_from_mailbox()
+    user = get_user()
+    assert user.last_login is None
+    client = get_api_client()
+    result = client.post(
+        reverse("auth"), data={"code_token": code_token, "code": code}
+    )
+    assert result.status_code == status.HTTP_200_OK
+    user.refresh_from_db()
+    assert user.last_login is not None
+
+
+@pytest.mark.django_db
+def test_that_update_last_login_can_be_disconnected():
+    user_logged_in.disconnect(dispatch_uid="update_last_login")
+    try:
+        code_token = get_code_token()
+        code = get_verification_code_from_mailbox()
+        user = get_user()
+        assert user.last_login is None
+        client = get_api_client()
+        result = client.post(
+            reverse("auth"), data={"code_token": code_token, "code": code}
+        )
+        assert result.status_code == status.HTTP_200_OK
+        user.refresh_from_db()
+        assert user.last_login is None
+    finally:
+        user_logged_in.connect(
+            update_last_login, dispatch_uid="update_last_login"
+        )
 
 
 @override_settings(

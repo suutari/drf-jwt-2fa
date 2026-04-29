@@ -2,6 +2,7 @@ from typing import Any
 
 from django.contrib.auth import authenticate, get_user_model
 from django.contrib.auth.models import AbstractBaseUser
+from django.contrib.auth.signals import user_logged_in
 from django.utils.module_loading import import_string
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt import settings as jwt_settings
@@ -82,6 +83,9 @@ class AuthTokenSerializer(Jwt2faSerializer):
 
     def _create_tokens(self, user: AbstractBaseUser) -> dict[str, str]:
         token = self.get_token_class().for_user(user)
+        drf_request = self.context.get("request")
+        request = drf_request._request if drf_request else None
+        user_logged_in.send(sender=type(user), request=request, user=user)
         if hasattr(token, "access_token"):
             # The keys are 'access' and 'refresh' by default
             access_key = api_settings.AUTH_RESULT_ACCESS_TOKEN_KEY
