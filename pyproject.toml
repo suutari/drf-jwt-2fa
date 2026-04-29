@@ -116,7 +116,7 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "conftest.py" = ["S101"]  # Allow assert
-"drf_jwt_2fa/tests/**/*.py" = ["S101", "S106", "S107", "S301"]
+"drf_jwt_2fa/tests/**/*.py" = ["S101", "S105", "S106", "S107", "S301"]
 "test_settings.py" = ["S105"]  # SECRET_KEY
 "drf_jwt_2fa/migrations/**/*.py" = ["RUF012"]
 

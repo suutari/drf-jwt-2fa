@@ -183,6 +183,26 @@ Example enrollment flow::
   POST /get-code/ {"username": "alice", "password": "..."} -> totp_code_token
   POST /auth/     {"code_token": "...", "code": "654321"}  -> access token
 
+Changing the Preferred 2FA Method
+----------------------------------
+
+Authenticated users can change their preferred 2FA method via:
+
+``POST /2fa-method/``
+  Body: ``{"method": "<method>"}``
+
+  Sets the user's preferred 2FA method.  Accepted values:
+
+  * ``"code-sender"`` -- receive a one-time code via the configured sender
+    (e.g. e-mail).
+  * ``"totp"`` -- use a TOTP authenticator app.  Requires an active TOTP
+    secret to already be enrolled via the setup and confirm endpoints.
+  * ``"no-2fa"`` -- disable the second factor entirely.  Only permitted
+    when ``NO_2FA_BEHAVIOR`` is set to ``"allow"``; returns
+    ``HTTP 403`` otherwise.
+
+  Returns ``HTTP 200 {}`` on success.
+
 Custom TOTP Storage
 -------------------
 

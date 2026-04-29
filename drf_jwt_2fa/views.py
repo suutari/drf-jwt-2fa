@@ -6,6 +6,7 @@ from rest_framework_simplejwt import views as jwt_views
 
 from . import serializers, totp_serializers
 from .authentication import Jwt2faAuthentication
+from .serializers_2fa_method import Set2faMethodSerializer
 from .throttling import AuthTokenThrottler, CodeTokenThrottler
 
 
@@ -76,9 +77,39 @@ class ConfirmTotpView(APIView):
         return Response({}, status=status.HTTP_200_OK)
 
 
+class Set2faMethodView(APIView):
+    """
+    Set the preferred 2FA method for the authenticated user.
+
+    Accepts a ``method`` field with one of the following values:
+
+    * ``"code-sender"`` -- receive a one-time code via the configured
+      sender (e.g. e-mail).
+    * ``"totp"`` -- use a TOTP authenticator app.  Requires an active
+      TOTP secret to already be enrolled via ``POST /totp/setup/`` and
+      ``POST /totp/confirm/``.
+    * ``"no-2fa"`` -- disable the second factor entirely.  Only allowed
+      when the ``NO_2FA_BEHAVIOR`` setting is ``"allow"``.
+
+    Requires a valid JWT access token (``Authorization: Bearer <token>``).
+    """
+
+    authentication_classes = (Jwt2faAuthentication,)
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, *args, **kwargs):
+        serializer = Set2faMethodSerializer(
+            data=request.data, context={"request": request}
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save()
+        return Response({}, status=status.HTTP_200_OK)
+
+
 obtain_code_token = ObtainCodeToken.as_view()
 obtain_auth_token = ObtainAuthToken.as_view()
 refresh_auth_token = RefreshAuthToken.as_view()
 verify_auth_token = VerifyAuthToken.as_view()
 setup_totp = SetupTotpView.as_view()
 confirm_totp = ConfirmTotpView.as_view()
+set_2fa_method = Set2faMethodView.as_view()
