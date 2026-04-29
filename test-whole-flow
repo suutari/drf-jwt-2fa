@@ -1,0 +1,98 @@
+#!/bin/bash
+# This script tests the whole flow of the application drf-jwt-2fa
+
+set -e
+
+export IFS=$'\n'
+
+jqc() { jq -C "$@"; }
+
+bind_to=localhost:8066
+baseurl=http://$bind_to/auth
+
+first_phase=true
+
+phase_info() {
+    $first_phase && first_phase=false || printf "\n"
+    printf "\033[1m%s\033[0m\n" "$1"
+}
+
+AUTH_TOKEN=""
+
+post() {
+    local path=$1
+    local data=$2
+    local opts=(-H "Content-Type: application/json")
+    if [[ -n "$AUTH_TOKEN" ]]; then
+        opts+=(-H "Authorization: Bearer $AUTH_TOKEN")
+    fi
+    if [[ -n "$data" ]]; then
+        opts+=(-d "$data")
+    fi
+    printf "POST %s %s\n" "$path" "$data"
+    result=$(curl -s -X POST "$baseurl$path" "${opts[@]}")
+    local formatted_result=$(printf "%s" "$result" | jqc .)
+    printf " => %s\n" "$(sed ':a;N;$!ba;s/\n/\n    /g' <<<$formatted_result)"
+}
+
+get_from_result() {
+    local key=$1
+    jq -r ".$key" <<<$result
+}
+
+decode_jwt() {
+    local token=$1
+    local payload=$(cut -d. -f2 <<<"$token")
+    local decoded=$(echo "$payload" | base64 -d 2>/dev/null || true)
+    local decoded=$(printf "%s" "$decoded" | jqc -c .)
+    printf "    Payload: %s\n" "$decoded"
+}
+
+########################################################################
+phase_info "Migrating database"
+./manage.py migrate --noinput
+
+########################################################################
+phase_info "Creating testuser with password test123"
+./manage.py shell -v0 <<EOF
+User.objects.filter(username='testuser').delete()
+u = User.objects.create_user(username='testuser', email='test@email.invalid')
+u.set_password('test123')
+u.save()
+u_data = [f"{k}: {v}" for (k,v) in vars(u).items() if k[0] != "_" and v]
+print(f"Created user: {" | ".join(u_data)}")
+EOF
+
+########################################################################
+phase_info "Starting the Django development server"
+maildir=$(mktemp -d /tmp/drf-jwt-2fa-test-maildir-XXXXXX)
+export EMAIL_FILE_PATH="$maildir"
+./manage.py runserver -v0 $bind_to 2>&1 &
+server_pid=$!
+trap "kill $server_pid; rm -rf $maildir" EXIT  # Cleanup on exit
+sleep 2  # Wait for the server to start
+
+########################################################################
+phase_info "Getting code token from /get-code endpoint"
+post /get-code/ '{"username": "testuser", "password": "test123"}'
+code_token=$(get_from_result token)
+decode_jwt "$code_token"
+code_line=$(cat "$maildir"/*.log | grep -E '\b[0-9]{7}\b' | tail -n1)
+rm -f "$maildir"/*.log
+printf "Got email with this code line: %s\n" "$code_line"
+
+########################################################################
+phase_info "Requesting new code token to see whether mail is sent again"
+post /get-code/ '{"username": "testuser", "password": "test123"}'
+code_token=$(get_from_result token)
+decode_jwt "$code_token"
+code_line=$(cat "$maildir"/*.log | grep -E '\b[0-9]{7}\b' | tail -n1)
+rm -f "$maildir"/*.log
+printf "Got a new email with this code line: %s\n" "$code_line"
+
+########################################################################
+phase_info "Exchanging code and code token for auth token"
+code=$(sed -E 's/.*\b([0-9]{7})\b.*/\1/g' <<<$code_line)
+post /auth/ "{\"code\": \"$code\", \"code_token\": \"$code_token\"}"
+AUTH_TOKEN=$(get_from_result access)
+decode_jwt "$AUTH_TOKEN"

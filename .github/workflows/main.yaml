@@ -47,6 +47,23 @@ jobs:
         with:
           token: ${{secrets.CODECOV_TOKEN}}
 
+  whole-flow:
+    name: "Test Whole Flow"
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          enable-cache: true
+
+      - name: Install Python and project dependencies with uv
+        run: uv sync
+
+      - name: Run whole-flow test
+        run: uv run ./test-whole-flow
+
   checks:
     name: "Check: ${{matrix.toxenv}}"
     strategy:
