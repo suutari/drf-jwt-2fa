@@ -23,12 +23,19 @@ def derive_key(name: str, key: str) -> str:
     ensures that keys derived for different names are cryptographically
     independent even when they share the same base key.
     """
-    mac = hmac.new(
-        key.encode("utf-8"),
-        msg=name.encode("utf-8"),
-        digestmod=hashlib.sha256,
-    )
+    mac = hmac.new(key.encode("utf-8"), name.encode("utf-8"), hashlib.sha256)
     return base64.b64encode(mac.digest()).rstrip(b"=").decode("ascii")
+
+
+def derive_key_bytes(name: str, key: str) -> bytes:
+    """
+    Derive a domain-separated 32-byte key from the given key and name.
+
+    Like :func:`derive_key` but returns the raw 32 bytes instead of a
+    base64-encoded string.
+    """
+    mac = hmac.new(key.encode("utf-8"), name.encode("utf-8"), hashlib.sha256)
+    return mac.digest()
 
 
 def get_code_token_hash(token: str, prefix_len: int = 81) -> str:

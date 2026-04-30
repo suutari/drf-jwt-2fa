@@ -96,3 +96,31 @@ code=$(sed -E 's/.*\b([0-9]{7})\b.*/\1/g' <<<$code_line)
 post /auth/ "{\"code\": \"$code\", \"code_token\": \"$code_token\"}"
 AUTH_TOKEN=$(get_from_result access)
 decode_jwt "$AUTH_TOKEN"
+
+# Use the code token and the code to get the auth token
+phase_info "Starting TOTP setup"
+post /totp/setup/
+secret=$(get_from_result secret)
+
+########################################################################
+phase_info "Finalizing TOTP setup"
+totp_code=$(oathtool --totp -b "$secret")
+echo "Current TOTP code: $totp_code"
+post /totp/confirm/ "{\"code\": \"$totp_code\"}"
+
+########################################################################
+phase_info "Testing that TOTP code works for authentication now"
+post /get-code/ '{"username": "testuser", "password": "test123"}'
+code_token=$(get_from_result token)
+decode_jwt "$code_token"
+if [[ -e "$maildir"/*.log ]]; then
+    echo "Error: Mail box is not empty after TOTP setup"
+    cat "$maildir"/*.log
+    exit 1
+else
+    echo "Mail box is empty, since now TOTP is used for authentication"
+fi
+code=$(oathtool --totp -b "$secret")
+post /auth/ "{\"code\": \"$code\", \"code_token\": \"$code_token\"}"
+AUTH_TOKEN=$(get_from_result access)
+decode_jwt "$AUTH_TOKEN"

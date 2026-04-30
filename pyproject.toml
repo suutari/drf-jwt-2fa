@@ -37,9 +37,11 @@ classifiers = [
 ]
 requires-python = ">=3.12"
 dependencies = [
+    "cryptography>=47.0.0",
     "django>2",
     "djangorestframework>=3.0",
     "djangorestframework-simplejwt>=5.1",
+    "pyotp>=2.6",
 ]
 
 [project.urls]
@@ -114,8 +116,9 @@ ignore = [
 
 [tool.ruff.lint.per-file-ignores]
 "conftest.py" = ["S101"]  # Allow assert
-"drf_jwt_2fa/tests/**/*.py" = ["S101", "S106", "S107", "S301"]
+"drf_jwt_2fa/tests/**/*.py" = ["S101", "S105", "S106", "S107", "S301"]
 "test_settings.py" = ["S105"]  # SECRET_KEY
+"drf_jwt_2fa/migrations/**/*.py" = ["RUF012"]
 
 [tool.ruff.lint.isort]
 known-first-party = ["drf_jwt_2fa"]
