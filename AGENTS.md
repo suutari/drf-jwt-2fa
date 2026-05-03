@@ -9,6 +9,8 @@ pytest                       # Run tests directly without Tox
 pytest drf_jwt_2fa/TESTFILE  # Run tests from specified test file
 tox                          # Run full test matrix (Python/Django) and checks
 tox -e py314-django60        # Run tests with Python 3.14 and Django 6.0
+tox -e docrendering          # Check rendering of README.rst and ChangeLog.rst
+tox -e docrendering -- FILE  # Check a specific file (ReST or Markdown)
 ```
 
 ## Supported Versions
@@ -38,6 +40,8 @@ tox -e py314-django60        # Run tests with Python 3.14 and Django 6.0
 - Run tests from a single test file with `pytest PATH/TO/TESTFILE`
 - Don't run the full test matrix with Tox if not explicitly asked to
 - Check code style and linting only with `./lint` script
+- Check README.rst and ChangeLog.rst with `tox -e docrendering`
+- Check a specific file (ReST or MD) with `tox -e docrendering -- FILENAME`
 - Tests use pytest-django with SQLite
 - Don't ignore modules in pytest config to work around collection
   errors, but fix the test environment instead.
