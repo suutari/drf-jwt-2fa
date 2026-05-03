@@ -44,7 +44,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "totp_secret",
+                    "encrypted_totp_secret",
                     models.CharField(
                         blank=True,
                         default="",
@@ -53,7 +53,7 @@ class Migration(migrations.Migration):
                     ),
                 ),
                 (
-                    "totp_secret_pending",
+                    "encrypted_totp_secret_pending",
                     models.CharField(
                         blank=True,
                         default="",

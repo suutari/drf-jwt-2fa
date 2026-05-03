@@ -17,8 +17,12 @@ class UserTwoFactorAuthDataAdmin(admin.ModelAdmin):
     list_display = ("user", "preferred_2fa_auth", "has_totp_secret")
     list_filter = ("preferred_2fa_auth",)
     search_fields = ("user__username", "user__email")
-    readonly_fields = ("user", "totp_secret", "totp_secret_pending")
+    readonly_fields = (
+        "user",
+        "encrypted_totp_secret",
+        "encrypted_totp_secret_pending",
+    )
 
     @admin.display(boolean=True, description=_("TOTP configured"))
     def has_totp_secret(self, obj):
-        return bool(obj.totp_secret)
+        return bool(obj.encrypted_totp_secret)

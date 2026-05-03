@@ -4,7 +4,6 @@ from django.contrib.auth.models import User
 
 from drf_jwt_2fa.models import TwoFactorAuthMethod, UserTwoFactorAuthData
 from drf_jwt_2fa.token_manager import CodeTokenManager
-from drf_jwt_2fa.totp import encrypt_totp_secret
 
 from .utils import check_code_token
 
@@ -30,15 +29,12 @@ def get_user_with_2fa_method(
     """
 
     user = get_user(username=username, password=password, email=email)
-    UserTwoFactorAuthData.objects.update_or_create(
+    data, _created = UserTwoFactorAuthData.objects.update_or_create(
         user=user,
-        defaults={
-            "preferred_2fa_auth": method,
-            "totp_secret": (
-                encrypt_totp_secret(totp_secret) if totp_secret else ""
-            ),
-        },
+        defaults={"preferred_2fa_auth": method},
     )
+    data.set_totp_secret(totp_secret)
+    data.save(update_fields=["encrypted_totp_secret"])
     return user
 
 

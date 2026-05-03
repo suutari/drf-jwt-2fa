@@ -2,6 +2,8 @@ from django.conf import settings
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from .totp_encryption import decrypt_totp_secret, encrypt_totp_secret
+
 
 class TwoFactorAuthMethod(models.TextChoices):
     NOT_CONFIGURED = "", _("Not configured")
@@ -29,9 +31,14 @@ class UserTwoFactorAuthData(models.Model):
       * TOTP: Verify a TOTP code.
 
     During TOTP enrollment the new secret is initially stored in
-    totp_secret_pending field. Only after the user has successfully
-    confirmed the first code, it is moved to totp_secret and
-    preferred_2fa_auth is set to TOTP.
+    encrypted_totp_secret_pending field.  Only after the user has
+    successfully confirmed the first code, it is moved to
+    encrypted_totp_secret and preferred_2fa_auth is set to TOTP.
+
+    Use :meth:`get_totp_secret`, :meth:`set_totp_secret`,
+    :meth:`get_pending_totp_secret`, and :meth:`set_pending_totp_secret`
+    to read and write the secrets; they handle encryption and decryption
+    transparently.
     """
 
     user = models.OneToOneField(
@@ -46,13 +53,13 @@ class UserTwoFactorAuthData(models.Model):
         default=TwoFactorAuthMethod.NOT_CONFIGURED,
         verbose_name=_("preferred 2FA method"),
     )
-    totp_secret = models.CharField(
+    encrypted_totp_secret = models.CharField(
         max_length=200,
         blank=True,
         default="",
         verbose_name=_("TOTP secret"),
     )
-    totp_secret_pending = models.CharField(
+    encrypted_totp_secret_pending = models.CharField(
         max_length=200,
         blank=True,
         default="",
@@ -65,3 +72,28 @@ class UserTwoFactorAuthData(models.Model):
 
     def __str__(self):
         return f"{self.user} ({self.preferred_2fa_auth or '2FA unconfigured'})"
+
+    def get_totp_secret(self) -> str:
+        """
+        Return the decrypted TOTP secret.
+        """
+        return decrypt_totp_secret(self.encrypted_totp_secret)
+
+    def set_totp_secret(self, val: str, /) -> None:
+        """
+        Encrypt TOTP secret and store it to encrypted_totp_secret.
+        """
+        self.encrypted_totp_secret = encrypt_totp_secret(val) if val else ""
+
+    def get_pending_totp_secret(self) -> str:
+        """
+        Return the decrypted pending TOTP secret.
+        """
+        return decrypt_totp_secret(self.encrypted_totp_secret_pending)
+
+    def set_pending_totp_secret(self, val: str, /) -> None:
+        """
+        Encrypt TOTP secret and store it to encrypted_totp_secret_pending.
+        """
+        encrypted = encrypt_totp_secret(val) if val else ""
+        self.encrypted_totp_secret_pending = encrypted

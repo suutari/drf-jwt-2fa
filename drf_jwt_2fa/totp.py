@@ -2,10 +2,7 @@
 TOTP (Time-based One-Time Password) utilities.
 """
 
-import base64
-
 import pyotp
-from cryptography.fernet import Fernet, InvalidToken
 from django.contrib.auth.models import AbstractBaseUser
 
 from .models import TwoFactorAuthMethod, UserTwoFactorAuthData
@@ -21,42 +18,6 @@ def verify_totp_code(secret: str, code: str, valid_window: int = 1) -> bool:
         return pyotp.TOTP(secret).verify(code, valid_window=valid_window)
     except ValueError:
         return False
-
-
-def encrypt_totp_secret(plaintext: str) -> str:
-    """
-    Encrypt a TOTP secret for storage.
-
-    Encrypts *plaintext* using Fernet symmetric encryption with the key
-    from ``TOTP_ENCRYPTION_KEY`` and returns the resulting ciphertext as
-    a URL-safe base64 string suitable for storing in a ``CharField``.
-
-    Use :func:`decrypt_totp_secret` to reverse the operation.
-    """
-    fernet = _get_fernet()
-    return fernet.encrypt(plaintext.encode()).decode()
-
-
-def decrypt_totp_secret(ciphertext: str) -> str | None:
-    """
-    Decrypt a TOTP secret retrieved from storage.
-
-    Returns the plaintext base32 secret, or ``None`` if *ciphertext* is
-    empty, has been tampered with, or was encrypted with a different key.
-    """
-    if not ciphertext:
-        return None
-    try:
-        fernet = _get_fernet()
-        return fernet.decrypt(ciphertext.encode()).decode()
-    except InvalidToken:
-        return None
-
-
-def _get_fernet() -> Fernet:
-    raw_key: bytes = api_settings.TOTP_ENCRYPTION_KEY
-    key = base64.urlsafe_b64encode(raw_key)
-    return Fernet(key)
 
 
 def get_totp_provisioning_uri(secret: str, user: AbstractBaseUser) -> str:
@@ -81,12 +42,12 @@ def get_totp_secret_for_user(user: AbstractBaseUser) -> str | None:
     Return the active TOTP secret for the given user, or ``None``.
 
     Look up UserTwoFactorAuthData for the user and return the
-    totp_secret field only when preferred_2fa_auth is "totp".
+    encrypted_totp_secret field only when preferred_2fa_auth is "totp".
     """
     d = UserTwoFactorAuthData.objects.filter(user=user).first()  # type: ignore
     if not d or d.preferred_2fa_auth != TwoFactorAuthMethod.TOTP:
         return None
-    return decrypt_totp_secret(d.totp_secret)
+    return d.get_totp_secret()
 
 
 def get_preferred_2fa_method_for_user(user: AbstractBaseUser) -> str:

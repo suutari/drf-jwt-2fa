@@ -33,22 +33,22 @@ def test_search_fields(admin_instance):
 
 def test_readonly_fields(admin_instance):
     assert "user" in admin_instance.readonly_fields
-    assert "totp_secret" in admin_instance.readonly_fields
-    assert "totp_secret_pending" in admin_instance.readonly_fields
+    assert "encrypted_totp_secret" in admin_instance.readonly_fields
+    assert "encrypted_totp_secret_pending" in admin_instance.readonly_fields
 
 
 @pytest.mark.parametrize(
-    "totp_secret, expected",
+    "encrypted_totp_secret, expected",
     [
         ("encryptedsecret", True),
         ("", False),
     ],
 )
-def test_has_totp_secret(admin_instance, totp_secret, expected):
+def test_has_totp_secret(admin_instance, encrypted_totp_secret, expected):
     user = User(username="jane")
     obj = UserTwoFactorAuthData(
         user=user,
         preferred_2fa_auth=TwoFactorAuthMethod.TOTP,
-        totp_secret=totp_secret,
+        encrypted_totp_secret=encrypted_totp_secret,
     )
     assert admin_instance.has_totp_secret(obj) is expected

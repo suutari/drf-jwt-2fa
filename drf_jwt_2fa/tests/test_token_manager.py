@@ -611,7 +611,9 @@ def test_check_totp_code_token_fails_when_secret_missing():
     # Remove the TOTP secret from the DB after the token was created
     from drf_jwt_2fa.models import UserTwoFactorAuthData
 
-    UserTwoFactorAuthData.objects.filter(user=user).update(totp_secret="")
+    UserTwoFactorAuthData.objects.filter(user=user).update(
+        encrypted_totp_secret=""
+    )
 
     with pytest.raises(exceptions.AuthenticationFailed):
         manager.check_code_token_and_code(token, code)

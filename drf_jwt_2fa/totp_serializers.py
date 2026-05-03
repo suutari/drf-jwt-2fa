@@ -8,8 +8,6 @@ from rest_framework import exceptions, serializers
 from .models import TwoFactorAuthMethod, UserTwoFactorAuthData
 from .settings import api_settings
 from .totp import (
-    decrypt_totp_secret,
-    encrypt_totp_secret,
     generate_totp_secret,
     get_totp_provisioning_uri,
     verify_totp_code,
@@ -35,8 +33,8 @@ class SetupTotpSerializer(serializers.Serializer):
         user = self.context["request"].user
         secret = generate_totp_secret()
         data, _created = UserTwoFactorAuthData.objects.get_or_create(user=user)
-        data.totp_secret_pending = encrypt_totp_secret(secret)
-        data.save(update_fields=["totp_secret_pending"])
+        data.set_pending_totp_secret(secret)
+        data.save(update_fields=["encrypted_totp_secret_pending"])
         provisioning_uri = get_totp_provisioning_uri(secret, user)
         return {
             "secret": secret,
@@ -64,8 +62,7 @@ class ConfirmTotpSerializer(serializers.Serializer):
     def validate(self, attrs):
         user = self.context["request"].user
         data = UserTwoFactorAuthData.objects.filter(user=user).first()
-        pending_ciphertext = data.totp_secret_pending if data else None
-        pending_secret = decrypt_totp_secret(pending_ciphertext or "")
+        pending_secret = data.get_pending_totp_secret() if data else None
         if not pending_secret:
             raise exceptions.PermissionDenied(
                 _("No pending TOTP setup. Call the setup endpoint first.")
@@ -83,13 +80,13 @@ class ConfirmTotpSerializer(serializers.Serializer):
     def save(self, **kwargs):
         data = self.validated_data["_data"]
         pending_secret = self.validated_data["_pending_secret"]
-        data.totp_secret = encrypt_totp_secret(pending_secret)
-        data.totp_secret_pending = ""
+        data.set_totp_secret(pending_secret)
+        data.set_pending_totp_secret("")
         data.preferred_2fa_auth = TwoFactorAuthMethod.TOTP
         data.save(
             update_fields=[
-                "totp_secret",
-                "totp_secret_pending",
+                "encrypted_totp_secret",
+                "encrypted_totp_secret_pending",
                 "preferred_2fa_auth",
             ]
         )

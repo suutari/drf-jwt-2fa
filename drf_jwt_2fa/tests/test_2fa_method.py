@@ -51,7 +51,7 @@ def test_set_2fa_method_to_no_2fa_when_allowed():
 
 @pytest.mark.django_db
 def test_set_2fa_method_to_totp_with_enrolled_secret():
-    totp_secret = "JBSWY3DPEHPK3PXP"
+    totp_secret = "74GGLFFJJLNWGN4NHUQGQBHDQVVZR75J"
     user = get_user_with_totp_2fa(totp_secret)
     # Switch away from TOTP first so we can test switching back to it
     UserTwoFactorAuthData.objects.filter(user=user).update(

@@ -20,8 +20,9 @@ class Set2faMethodSerializer(serializers.Serializer):
     * ``"no-2fa"`` is only accepted when the ``NO_2FA_BEHAVIOR`` setting
       is ``"allow"``; otherwise a ``PermissionDenied`` error is raised.
     * ``"totp"`` is only accepted when the user already has an active
-      TOTP secret enrolled (i.e. ``totp_secret`` is non-empty); otherwise
-      a ``PermissionDenied`` error is raised.
+      TOTP secret enrolled (i.e. :meth:`~.models.UserTwoFactorAuthData.\
+get_totp_secret` returns a non-empty value); otherwise a
+      ``PermissionDenied`` error is raised.
 
     Call ``save()`` to persist the new preferred method.
     """
@@ -43,7 +44,7 @@ class Set2faMethodSerializer(serializers.Serializer):
 
         if method == TwoFactorAuthMethod.TOTP:
             data = UserTwoFactorAuthData.objects.filter(user=user).first()
-            if not (data and data.totp_secret):
+            if not (data and data.get_totp_secret()):
                 raise exceptions.PermissionDenied(
                     _("No active TOTP secret. Complete TOTP enrollment first.")
                 )
