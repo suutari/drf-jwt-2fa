@@ -101,10 +101,6 @@ by adding something like this to the settings::
   }
 
 
-Note: Authentication token endpoint can return different kind of tokens
-based on ``token_class`` property of the class configured as the
-``TOKEN_OBTAIN_SERIALIZER`` for `Simple JWT <simplejwt_>`_.
-
 The URLs for the authentication API endpoints can be configured with
 something like this in an `urls.py`::
 
@@ -317,6 +313,25 @@ available settings with their default values::
       # encryption key independently of SECRET_KEY.
       'TOTP_ENCRYPTION_KEY': derive_key_bytes('2fa-totp-enc', SECRET_KEY),
   }
+
+Customising the Auth Token
+--------------------------
+
+The format of the Auth Token returned by the authentication endpoint can
+be customised by setting the `TOKEN_OBTAIN_SERIALIZER`_ in
+``SIMPLE_JWT`` settings to point to your own serializer class.  The
+token type is determined by the ``token_class`` property of that
+serializer.  For example, to return a sliding token instead of an access
+token, you can set::
+
+  SIMPLE_JWT = {
+      'TOKEN_OBTAIN_SERIALIZER': (
+          'rest_framework_simplejwt.serializers.TokenObtainSlidingSerializer'
+      ),
+  }
+
+.. _TOKEN_OBTAIN_SERIALIZER:
+   https://django-rest-framework-simplejwt.readthedocs.io/en/latest/settings.html#token-obtain-serializer
 
 Login Signal
 ------------
