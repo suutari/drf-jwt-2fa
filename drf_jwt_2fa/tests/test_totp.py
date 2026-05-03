@@ -1,10 +1,12 @@
 from unittest.mock import Mock
 
 import pyotp
+import pytest
 
 from drf_jwt_2fa.totp import (
     generate_totp_secret,
     get_totp_provisioning_uri,
+    make_sure_is_valid_totp_secret,
     verify_totp_code,
 )
 
@@ -17,6 +19,36 @@ def test_generate_totp_secret_returns_32_char_base32():
     assert len(secret) == 32
     # Must be accepted by pyotp, i.e. valid base32 string
     pyotp.TOTP(secret)
+
+
+def test_make_sure_is_valid_totp_secret_accepts_valid_secret():
+    make_sure_is_valid_totp_secret(generate_totp_secret())
+
+
+def test_make_sure_is_valid_totp_secret_raises_on_too_short():
+    with pytest.raises(ValueError):
+        make_sure_is_valid_totp_secret("AAAAAAAAAAAAAAAA")  # 16 chars
+
+
+def test_make_sure_is_valid_totp_secret_raises_on_too_long():
+    with pytest.raises(ValueError):
+        make_sure_is_valid_totp_secret("A" * 33)
+
+
+def test_make_sure_is_valid_totp_secret_raises_on_invalid_chars():
+    with pytest.raises(ValueError):
+        make_sure_is_valid_totp_secret("!" * 32)
+
+
+def test_make_sure_is_valid_totp_secret_raises_on_lowercase():
+    with pytest.raises(ValueError):
+        # Lowercase is not valid Base32 in this context
+        make_sure_is_valid_totp_secret("a" * 32)
+
+
+def test_make_sure_is_valid_totp_secret_raises_on_empty_string():
+    with pytest.raises(ValueError):
+        make_sure_is_valid_totp_secret("")
 
 
 def test_generate_totp_secret_is_random():

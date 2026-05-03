@@ -78,6 +78,18 @@ def test_set_and_get_are_independent_for_active_and_pending():
     assert data.get_pending_totp_secret() == pending
 
 
+def test_set_totp_secret_raises_on_invalid_value():
+    data = UserTwoFactorAuthData()
+    with pytest.raises(ValueError):
+        data.set_totp_secret("A" * 80)
+
+
+def test_set_pending_totp_secret_raises_on_invalid_value():
+    data = UserTwoFactorAuthData()
+    with pytest.raises(ValueError):
+        data.set_pending_totp_secret("A" * 80)
+
+
 @pytest.mark.django_db
 def test_get_totp_secret_of_user_returns_none_when_no_record():
     user = get_user()

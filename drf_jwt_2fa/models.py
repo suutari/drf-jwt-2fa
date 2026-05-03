@@ -4,6 +4,7 @@ from django.db import models
 from django.utils.translation import gettext_lazy as _
 
 from .settings import api_settings
+from .totp import make_sure_is_valid_totp_secret
 from .totp_encryption import decrypt_totp_secret, encrypt_totp_secret
 
 
@@ -114,6 +115,8 @@ class UserTwoFactorAuthData(models.Model):
         """
         Encrypt TOTP secret and store it to encrypted_totp_secret.
         """
+        if val:
+            make_sure_is_valid_totp_secret(val)
         self.encrypted_totp_secret = encrypt_totp_secret(val) if val else ""
 
     def get_pending_totp_secret(self) -> str:
@@ -126,5 +129,7 @@ class UserTwoFactorAuthData(models.Model):
         """
         Encrypt TOTP secret and store it to encrypted_totp_secret_pending.
         """
+        if val:
+            make_sure_is_valid_totp_secret(val)
         encrypted = encrypt_totp_secret(val) if val else ""
         self.encrypted_totp_secret_pending = encrypted

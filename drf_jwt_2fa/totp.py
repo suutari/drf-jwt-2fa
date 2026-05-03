@@ -2,10 +2,23 @@
 TOTP (Time-based One-Time Password) utilities.
 """
 
+import re
+
 import pyotp
 from django.contrib.auth.base_user import AbstractBaseUser
 
 from .settings import api_settings
+
+
+def make_sure_is_valid_totp_secret(secret: str, /) -> None:
+    """
+    Raise ValueError if given value is not a valid TOTP secret.
+    """
+    if not _TOTP_SECRET_RE.match(secret):
+        raise ValueError("Invalid TOTP secret")
+
+
+_TOTP_SECRET_RE = re.compile(r"^[A-Z2-7]{32}$")
 
 
 def generate_totp_secret() -> str:
