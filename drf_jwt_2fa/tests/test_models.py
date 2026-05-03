@@ -4,6 +4,9 @@ from django.contrib.auth.models import User
 from drf_jwt_2fa.models import TwoFactorAuthMethod, UserTwoFactorAuthData
 from drf_jwt_2fa.totp import generate_totp_secret
 
+from .factories import get_user
+from .utils import OverrideJwt2faSettings
+
 
 @pytest.mark.parametrize(
     "preferred, encrypted_totp_secret, expected",
@@ -73,3 +76,85 @@ def test_set_and_get_are_independent_for_active_and_pending():
     data.set_pending_totp_secret(pending)
     assert data.get_totp_secret() == active
     assert data.get_pending_totp_secret() == pending
+
+
+@pytest.mark.django_db
+def test_get_totp_secret_of_user_returns_none_when_no_record():
+    user = get_user()
+    assert UserTwoFactorAuthData.get_totp_secret_of_user(user) is None
+
+
+@pytest.mark.django_db
+def test_get_totp_secret_of_user_returns_none_when_method_is_not_totp():
+    user = get_user()
+    secret = generate_totp_secret()
+    d = UserTwoFactorAuthData(
+        user=user,
+        preferred_2fa_auth=TwoFactorAuthMethod.CODE_SENDER,
+    )
+    d.set_totp_secret(secret)
+    d.save()
+    assert UserTwoFactorAuthData.get_totp_secret_of_user(user) is None
+
+
+@pytest.mark.django_db
+def test_get_totp_secret_of_user_returns_secret_when_method_is_totp():
+    user = get_user()
+    secret = generate_totp_secret()
+    d = UserTwoFactorAuthData(
+        user=user,
+        preferred_2fa_auth=TwoFactorAuthMethod.TOTP,
+    )
+    d.set_totp_secret(secret)
+    d.save()
+    assert UserTwoFactorAuthData.get_totp_secret_of_user(user) == secret
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("default", ["", "no-2fa", "code-sender"])
+def test_get_preferred_2fa_method_of_user_returns_default_when_no_record(
+    default,
+):
+    with OverrideJwt2faSettings(DEFAULT_2FA_AUTH_METHOD=default):
+        user = get_user()
+        result = UserTwoFactorAuthData.get_preferred_2fa_method_of_user(user)
+        assert result == default
+
+
+@pytest.mark.django_db
+@pytest.mark.parametrize("default", ["", "no-2fa", "code-sender"])
+def test_get_preferred_2fa_method_of_user_returns_default_when_not_configured(
+    default,
+):
+    with OverrideJwt2faSettings(DEFAULT_2FA_AUTH_METHOD=default):
+        user = get_user()
+        UserTwoFactorAuthData.objects.create(
+            user=user,
+            preferred_2fa_auth=TwoFactorAuthMethod.NOT_CONFIGURED,
+        )
+        result = UserTwoFactorAuthData.get_preferred_2fa_method_of_user(user)
+        assert result == default
+
+
+@pytest.mark.django_db
+def test_get_preferred_2fa_method_of_user_returns_code_sender():
+    user = get_user()
+    UserTwoFactorAuthData.objects.create(
+        user=user,
+        preferred_2fa_auth=TwoFactorAuthMethod.CODE_SENDER,
+    )
+    result = UserTwoFactorAuthData.get_preferred_2fa_method_of_user(user)
+    assert result == "code-sender"
+
+
+@pytest.mark.django_db
+def test_get_preferred_2fa_method_of_user_returns_totp():
+    user = get_user()
+    d = UserTwoFactorAuthData(
+        user=user,
+        preferred_2fa_auth=TwoFactorAuthMethod.TOTP,
+    )
+    d.set_totp_secret(generate_totp_secret())
+    d.save()
+    result = UserTwoFactorAuthData.get_preferred_2fa_method_of_user(user)
+    assert result == "totp"

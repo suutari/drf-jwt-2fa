@@ -287,12 +287,12 @@ available settings with their default values::
 
       # Callable (user) -> str | None returning the active TOTP secret
       # for a user, or None if the user is not using TOTP.
-      'TOTP_SECRET_GETTER': 'drf_jwt_2fa.totp.get_totp_secret_for_user',
+      'TOTP_SECRET_GETTER': 'drf_jwt_2fa.getters.get_totp_secret_of_user',
 
       # Callable (user) -> str returning the user's preferred 2FA method
       # ("", "no-2fa", "code-sender", or "totp").
       'PREFERRED_2FA_METHOD_GETTER': (
-          'drf_jwt_2fa.totp.get_preferred_2fa_method_for_user'
+          'drf_jwt_2fa.getters.get_preferred_2fa_method_of_user'
       ),
 
       # Fallback method returned by the default PREFERRED_2FA_METHOD_GETTER

@@ -1,7 +1,9 @@
 from django.conf import settings
+from django.contrib.auth.base_user import AbstractBaseUser
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 
+from .settings import api_settings
 from .totp_encryption import decrypt_totp_secret, encrypt_totp_secret
 
 
@@ -72,6 +74,35 @@ class UserTwoFactorAuthData(models.Model):
 
     def __str__(self):
         return f"{self.user} ({self.preferred_2fa_auth or '2FA unconfigured'})"
+
+    @classmethod
+    def get_totp_secret_of_user(cls, user: AbstractBaseUser) -> str | None:
+        """
+        Get the active TOTP secret of user.
+
+        Return None if the user has no record or their preferred 2FA
+        method is not TOTP.
+        """
+        d = cls.objects.filter(user=user).first()
+        if not d or d.preferred_2fa_auth != TwoFactorAuthMethod.TOTP:
+            return None
+        return d.get_totp_secret()
+
+    @classmethod
+    def get_preferred_2fa_method_of_user(
+        cls, user: AbstractBaseUser
+    ) -> TwoFactorAuthMethod:
+        """
+        Get the preferred 2FA method of user.
+
+        Return the preferred_2fa_auth field value.  Return the value
+        configured to DEFAULT_2FA_AUTH_METHOD, if no record exists for
+        the user or the stored value is still "" (NOT_CONFIGURED).
+        """
+        d = cls.objects.filter(user=user).first()
+        if not d or not d.preferred_2fa_auth:
+            return TwoFactorAuthMethod(api_settings.DEFAULT_2FA_AUTH_METHOD)
+        return TwoFactorAuthMethod(d.preferred_2fa_auth)
 
     def get_totp_secret(self) -> str:
         """

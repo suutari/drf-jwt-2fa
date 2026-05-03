@@ -44,12 +44,12 @@ def _get_default_settings() -> dict[str, object]:
         "EMAIL_SENDER_BODY_OVERRIDE": None,
         # Callable (user) -> str | None that returns the active TOTP secret
         # for a user, or None if the user does not use TOTP.
-        "TOTP_SECRET_GETTER": "drf_jwt_2fa.totp.get_totp_secret_for_user",
+        "TOTP_SECRET_GETTER": "drf_jwt_2fa.getters.get_totp_secret_of_user",
         # Callable (user) -> str that returns the user's preferred 2FA
         # method.  Should return one of the TwoFactorAuthMethod values:
         # "" (none), "code-sender", or "totp".
         "PREFERRED_2FA_METHOD_GETTER": (
-            "drf_jwt_2fa.totp.get_preferred_2fa_method_for_user"
+            "drf_jwt_2fa.getters.get_preferred_2fa_method_of_user"
         ),
         # Default 2FA method to use when a user has no preference.
         "DEFAULT_2FA_AUTH_METHOD": "code-sender",
