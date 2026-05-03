@@ -97,10 +97,12 @@ post /auth/ "{\"code\": \"$code\", \"code_token\": \"$code_token\"}"
 AUTH_TOKEN=$(get_from_result access)
 decode_jwt "$AUTH_TOKEN"
 
-# Use the code token and the code to get the auth token
+########################################################################
 phase_info "Starting TOTP setup"
 post /totp/setup/
 secret=$(get_from_result secret)
+provisioning_uri=$(get_from_result provisioning_uri)
+qrencode -t UTF8 "$provisioning_uri"  # Print the TOTP setup QR code
 
 ########################################################################
 phase_info "Finalizing TOTP setup"
