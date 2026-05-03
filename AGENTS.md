@@ -19,6 +19,7 @@ tox -e py314-django60        # Run tests with Python 3.14 and Django 6.0
 ## Code Style
 
 - ruff with line-length=79, max-complexity=10
+- Use two spaces after a period in docstrings.
 
 ## Key Files
 
@@ -78,3 +79,4 @@ tox -e py314-django60        # Run tests with Python 3.14 and Django 6.0
   adds..." or "This change fixes...".  Instead, just describe what the
   commit does directly (e.g. "Add support for custom user models"
   instead).
+- Use two spaces after a period in commit message bodies.
