@@ -128,13 +128,15 @@ Each user has a ``preferred_2fa_auth`` field stored in the
 ``UserTwoFactorAuthData`` model (or via a custom getter).  Possible
 values are:
 
-* ``""`` -- 2FA still unconfigured.
+* ``""`` -- 2FA still unconfigured.  (Will be treated as "code-sender"
+  by default, but this can be changed with the ``FALLBACK_2FA_METHOD``
+  setting.)
 * ``"no-2fa"`` -- 2FA explicitly disabled for the user.
 * ``"code-sender"`` -- Send a verification code via ``CODE_SENDER``
   (e-mail by default).
 * ``"totp"`` -- Require a TOTP code from an authenticator app.
 
-For the ``""`` and ``"no-2fa"`` values the ``NO_2FA_BEHAVIOR`` setting
+For the ``"no-2fa"`` value the ``NO_2FA_BEHAVIOR`` setting
 controls what happens: ``"error"`` (default) rejects the login;
 ``"allow"`` issues auth tokens directly without a second factor.
 
@@ -215,7 +217,7 @@ Each callable receives a user instance and must return:
 
 * ``TOTP_SECRET_GETTER(user)`` -> ``str | None`` -- the active TOTP
   secret (base32), or ``None`` if the user is not using TOTP.
-* ``PREFERRED_2FA_METHOD_GETTER(user)`` -> ``str`` -- one of ``""``,
+* ``PREFERRED_2FA_METHOD_GETTER(user)`` -> ``str`` -- one of
   ``"no-2fa"``, ``"code-sender"``, or ``"totp"``.
 
 Additional Settings

@@ -9,7 +9,7 @@ from .totp_encryption import decrypt_totp_secret, encrypt_totp_secret
 
 
 class TwoFactorAuthMethod(models.TextChoices):
-    NOT_CONFIGURED = "", _("Not configured")
+    __empty__ = _("Not configured")
     NO_2FA = "no-2fa", _("No 2FA in use")
     CODE_SENDER = "code-sender", _("Code via sender (e.g. e-mail or SMS)")
     TOTP = "totp", _("TOTP (Time-based One-Time Password)")
@@ -27,7 +27,7 @@ class UserTwoFactorAuthData(models.Model):
     The preferred_2fa_auth field controls which 2FA method is used for
     the user at login time:
 
-      * NOT_CONFIGURED: No 2FA configured for the user.
+      * empty (""): No 2FA configured for the user.
       * NO_2FA: 2FA explicitly disabled by the user.
       * CODE_SENDER: Send a one-time code via the configured CODE_SENDER
         callable (uses e-mail by default).
@@ -53,7 +53,7 @@ class UserTwoFactorAuthData(models.Model):
     preferred_2fa_auth = models.CharField(
         max_length=16,
         choices=TwoFactorAuthMethod.choices,
-        default=TwoFactorAuthMethod.NOT_CONFIGURED,
+        default="",
         verbose_name=_("preferred 2FA method"),
     )
     encrypted_totp_secret = models.CharField(

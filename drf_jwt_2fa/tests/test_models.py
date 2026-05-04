@@ -9,23 +9,17 @@ from .utils import OverrideJwt2faSettings
 
 
 @pytest.mark.parametrize(
-    "preferred, encrypted_totp_secret, expected",
+    "preferred, expected",
     [
-        ("", "", "jane (2FA unconfigured)"),
-        (TwoFactorAuthMethod.NO_2FA, "", "jane (no-2fa)"),
-        (TwoFactorAuthMethod.CODE_SENDER, "", "jane (code-sender)"),
-        (TwoFactorAuthMethod.TOTP, "fake totp secret", "jane (totp)"),
+        ("", "jane (2FA unconfigured)"),
+        (TwoFactorAuthMethod.NO_2FA, "jane (no-2fa)"),
+        (TwoFactorAuthMethod.CODE_SENDER, "jane (code-sender)"),
+        (TwoFactorAuthMethod.TOTP, "jane (totp)"),
     ],
 )
-def test_user_two_factor_auth_data_str(
-    preferred, encrypted_totp_secret, expected
-):
+def test_user_two_factor_auth_data_str(preferred, expected):
     user = User(username="jane")
-    data = UserTwoFactorAuthData(
-        user=user,
-        preferred_2fa_auth=preferred,
-        encrypted_totp_secret=encrypted_totp_secret,
-    )
+    data = UserTwoFactorAuthData(user=user, preferred_2fa_auth=preferred)
     assert str(data) == expected
 
 

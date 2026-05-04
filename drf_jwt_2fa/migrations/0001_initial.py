@@ -27,7 +27,7 @@ class Migration(migrations.Migration):
                     "preferred_2fa_auth",
                     models.CharField(
                         choices=[
-                            ("", "Not configured"),
+                            (None, "Not configured"),
                             ("no-2fa", "No 2FA in use"),
                             (
                                 "code-sender",
