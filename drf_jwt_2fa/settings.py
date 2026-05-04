@@ -5,6 +5,7 @@ from django.conf import settings
 from django.contrib.auth.models import AbstractBaseUser
 from django.utils.module_loading import import_string
 
+from ._type_checking import is_instance_of_type
 from .utils import derive_key, derive_key_bytes
 
 
@@ -123,7 +124,7 @@ class ApiSettings:
     def _check_setting_types(self, values: dict[str, object]) -> None:
         for key, tp in get_type_hints(type(self)).items():
             value = values.get(key)
-            if not isinstance(value, tp):
+            if not is_instance_of_type(value, tp):
                 tp_name = tp.__name__ if isinstance(tp, type) else str(tp)
                 raise TypeError(
                     f"JWT2FA_AUTH setting {key!r} must be "
