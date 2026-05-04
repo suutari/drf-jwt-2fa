@@ -121,6 +121,127 @@ or by configuring each view individually::
       path('get-auth-token/', obtain_auth_token),
   ]
 
+Configuration Examples
+----------------------
+
+Email Code with Optional TOTP (Default)
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+====================================  =====================================
+Effect                                Behaviour
+====================================  =====================================
+Before user has 2FA configured        Uses email code 2FA for login
+``POST /get-code/``                   Returns Code Token
+``POST /auth/`` with email code       Returns Auth Token
+``POST /auth/`` with TOTP code        Returns Auth Token
+TOTP enrollment                       Available, needs Auth Token
+Switchable via ``POST /2fa-method/``  ``code-sender``, ``totp``
+====================================  =====================================
+
+This is the out-of-the-box behaviour.  No settings changes are needed;
+the block below shows the relevant defaults explicitly for clarity::
+
+  JWT2FA_AUTH = {
+      'TRUSTED_2FA_METHODS': ['code-sender', 'totp'],
+      'FALLBACK_2FA_METHOD': 'code-sender',
+  }
+
+All users authenticate with an email-delivered verification code by
+default.  Users who want to use a TOTP authenticator app can self-enroll
+at any time (see `TOTP Enrollment`_); enrolling automatically switches
+their preferred method to TOTP.  If they later want to go back to email
+codes they can do so via ``POST /2fa-method/``::
+
+  POST /2fa-method/ {"method": "code-sender"}
+
+Both methods coexist; each user independently chooses which one to use.
+
+TOTP Required
+~~~~~~~~~~~~~
+
+====================================  =========================================
+Effect                                Behaviour
+====================================  =========================================
+Before user has 2FA configured        Uses email code 2FA for TOTP enrollment
+``POST /get-code/``                   Returns Code Token
+``POST /auth/`` with email code       Returns Enrollment Token
+``POST /auth/`` with TOTP code        Returns Auth Token
+TOTP enrollment                       Mandatory, needs Enrollment or Auth Token
+Switchable via ``POST /2fa-method/``  ``totp`` only
+====================================  =========================================
+
+TOTP is the only accepted second factor.  Users who have not yet
+enrolled a TOTP authenticator app are bootstrapped via an
+email-delivered code: ``POST /auth/`` succeeds but returns an
+**Enrollment Token** (``enrollment_token`` key) rather than a full Auth
+Token (``access`` and ``refresh`` keys).  The Enrollment Token is
+accepted only by the TOTP enrollment endpoints (``POST /totp/setup/``
+and ``POST /totp/confirm/``); it is rejected everywhere else::
+
+  JWT2FA_AUTH = {
+      'TRUSTED_2FA_METHODS': ['totp'],
+      'FALLBACK_2FA_METHOD': 'code-sender',
+  }
+
+First-time setup (TOTP not yet enrolled)::
+
+  # Step 1: Obtain a code token (email sent)
+  POST /get-code/  {"username": "alice", "password": "..."}
+  -> {"token": "<code_token>"}
+
+  # Step 2: Verify email code
+  POST /auth/  {"code_token": "...", "code": "1234567"}
+  -> {"enrollment_token": "<enrollment_token>"}
+
+  # Step 3: Enroll TOTP using the Enrollment Token
+  POST /totp/setup/   (Authorization: Bearer <enrollment_token>)
+  -> {"secret": "BASE32...", "provisioning_uri": "otpauth://totp/..."}
+
+  # Step 4: Confirm TOTP enrollment
+  POST /totp/confirm/  {"code": "123456"}
+  -> {}  (HTTP 200)
+
+Logins after TOTP is enrolled::
+
+  # Step 1: Obtain a code token (no email sent; typ: "totp")
+  POST /get-code/  {"username": "alice", "password": "..."}
+  -> {"token": "<code_token>"}
+
+  # Step 2: Verify TOTP code
+  POST /auth/  {"code_token": "...", "code": "654321"}
+  -> {"access": "...", "refresh": "..."}
+
+Note: ``POST /2fa-method/`` rejects switching to any method not in
+``TRUSTED_2FA_METHODS``, so users cannot downgrade to email code or
+disable 2FA entirely in this configuration.
+
+No 2FA by Default
+~~~~~~~~~~~~~~~~~
+
+====================================  =============================================
+Effect                                Behaviour
+====================================  =============================================
+Before user has 2FA configured        Auth Token issued directly
+``POST /get-code/`` for no-2fa users  Returns Auth Token directly
+``POST /get-code/`` for others        Returns Code Token
+``POST /auth/`` with email code       Returns Auth Token
+``POST /auth/`` with TOTP code        Returns Auth Token
+TOTP enrollment                       Available, needs Auth Token
+Switchable via ``POST /2fa-method/``  ``code-sender``, ``totp``, ``no-2fa``
+====================================  =============================================
+
+Users without a ``UserTwoFactorAuthData`` record skip 2FA entirely:
+``POST /get-code/`` returns a full Auth Token directly without a second
+step.  Users who have enrolled TOTP or set ``code-sender`` continue to
+use those methods and go through the normal two-step flow.  All three
+methods (including ``no-2fa``) are available via ``POST /2fa-method/``,
+so users can opt in to a second factor or opt back out at will::
+
+  JWT2FA_AUTH = {
+      'TRUSTED_2FA_METHODS': ['code-sender', 'totp', 'no-2fa'],
+      'FALLBACK_2FA_METHOD': 'no-2fa',
+  }
+
 Per-User 2FA Method
 -------------------
 
