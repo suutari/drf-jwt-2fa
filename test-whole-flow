@@ -1,7 +1,7 @@
 #!/bin/bash
 # This script tests the whole flow of the application drf-jwt-2fa
 
-set -e
+set -e -u -o pipefail
 
 export IFS=$'\n'
 
@@ -21,7 +21,7 @@ AUTH_TOKEN=""
 
 post() {
     local path=$1
-    local data=$2
+    local data=${2:-}
     local opts=(-H "Content-Type: application/json")
     if [[ -n "$AUTH_TOKEN" ]]; then
         opts+=(-H "Authorization: Bearer $AUTH_TOKEN")
@@ -37,7 +37,16 @@ post() {
 
 get_from_result() {
     local key=$1
-    jq -r ".$key" <<<$result
+    local alternative=${2:-}
+    if [[ -n "$alternative" ]]; then
+        local first_val=$(jq -r ".$key // empty" <<< "$result")
+        if [[ -n "$first_val" ]]; then
+            printf "%s" "$first_val"
+            return 0
+        fi
+        key=$alternative
+    fi
+    jq -r ".$key // error(\"No '$key' field present in result\")" <<<$result
 }
 
 decode_jwt() {
@@ -91,10 +100,10 @@ rm -f "$maildir"/*.log
 printf "Got a new email with this code line: %s\n" "$code_line"
 
 ########################################################################
-phase_info "Exchanging code and code token for auth token"
+phase_info "Exchanging code and code token for auth or enrollment token"
 code=$(sed -E 's/.*\b([0-9]{7})\b.*/\1/g' <<<$code_line)
 post /auth/ "{\"code\": \"$code\", \"code_token\": \"$code_token\"}"
-AUTH_TOKEN=$(get_from_result access)
+AUTH_TOKEN=$(get_from_result access enrollment_token)
 decode_jwt "$AUTH_TOKEN"
 
 ########################################################################

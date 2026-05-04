@@ -48,3 +48,7 @@ EMAIL_BACKEND = (
 STATIC_URL = "/static/"
 STATIC_ROOT = os.path.join(os.path.dirname(__file__), "static")
 ROOT_URLCONF = "dev_urls"
+
+JWT2FA_AUTH = {
+    "TRUSTED_2FA_METHODS": ["totp"],
+}
