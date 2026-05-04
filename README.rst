@@ -292,9 +292,9 @@ available settings with their default values::
       ),
 
       # Fallback method returned by the default PREFERRED_2FA_METHOD_GETTER
-      # when a user has no UserTwoFactorAuthData record or their method is
-      # "" (NOT_CONFIGURED).  Defaults to "code-sender".
-      'DEFAULT_2FA_AUTH_METHOD': 'code-sender',
+      # when user has no UserTwoFactorAuthData record or their method is
+      # not yet configured.  Defaults to "code-sender".
+      'FALLBACK_2FA_METHOD': 'code-sender',
 
       # What to do when a user's preferred method is "" or "no-2fa":
       # "error" raises a PermissionDenied (HTTP 403, default);

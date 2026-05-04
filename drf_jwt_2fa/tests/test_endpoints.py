@@ -264,7 +264,7 @@ def test_auth_token_fails_with_wrong_totp():
 
 
 @pytest.mark.django_db
-@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="error", DEFAULT_2FA_AUTH_METHOD="")
+@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="error", FALLBACK_2FA_METHOD="no-2fa")
 def test_get_code_token_fails_when_2fa_not_configured():
     get_user(username="testuser", password="a42")
     client = get_api_client()
@@ -276,7 +276,7 @@ def test_get_code_token_fails_when_2fa_not_configured():
 
 
 @pytest.mark.django_db
-@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="allow", DEFAULT_2FA_AUTH_METHOD="")
+@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="allow", FALLBACK_2FA_METHOD="no-2fa")
 def test_get_code_token_returns_auth_token_when_2fa_not_configured_and_allow():
     get_user(username="testuser", password="a42")
     client = get_api_client()

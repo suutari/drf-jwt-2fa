@@ -97,12 +97,12 @@ class UserTwoFactorAuthData(models.Model):
         Get the preferred 2FA method of user.
 
         Return the preferred_2fa_auth field value.  Return the value
-        configured to DEFAULT_2FA_AUTH_METHOD, if no record exists for
-        the user or the stored value is still "" (NOT_CONFIGURED).
+        configured in FALLBACK_2FA_METHOD, if no record exists for
+        the user or the method is not yet configured.
         """
         d = cls.objects.filter(user=user).first()
         if not d or not d.preferred_2fa_auth:
-            return TwoFactorAuthMethod(api_settings.DEFAULT_2FA_AUTH_METHOD)
+            return TwoFactorAuthMethod(api_settings.FALLBACK_2FA_METHOD)
         return TwoFactorAuthMethod(d.preferred_2fa_auth)
 
     def get_totp_secret(self) -> str:

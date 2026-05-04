@@ -11,7 +11,7 @@ from .utils import OverrideJwt2faSettings
 @pytest.mark.parametrize(
     "preferred, encrypted_totp_secret, expected",
     [
-        (TwoFactorAuthMethod.NOT_CONFIGURED, "", "jane (2FA unconfigured)"),
+        ("", "", "jane (2FA unconfigured)"),
         (TwoFactorAuthMethod.NO_2FA, "", "jane (no-2fa)"),
         (TwoFactorAuthMethod.CODE_SENDER, "", "jane (code-sender)"),
         (TwoFactorAuthMethod.TOTP, "fake totp secret", "jane (totp)"),
@@ -123,29 +123,26 @@ def test_get_totp_secret_of_user_returns_secret_when_method_is_totp():
 
 
 @pytest.mark.django_db
-@pytest.mark.parametrize("default", ["", "no-2fa", "code-sender"])
-def test_get_preferred_2fa_method_of_user_returns_default_when_no_record(
-    default,
-):
-    with OverrideJwt2faSettings(DEFAULT_2FA_AUTH_METHOD=default):
+@pytest.mark.parametrize("fallback", ["no-2fa", "code-sender"])
+@pytest.mark.parametrize("mode", ["no-record", "not-configured", "configured"])
+def test_get_preferred_2fa_method_of_user_uses_fallback(fallback, mode):
+    with OverrideJwt2faSettings(FALLBACK_2FA_METHOD=fallback):
         user = get_user()
-        result = UserTwoFactorAuthData.get_preferred_2fa_method_of_user(user)
-        assert result == default
+        if mode == "no-record":
+            expected = fallback
+        elif mode == "not-configured":
+            UserTwoFactorAuthData.objects.create(user=user)
+            expected = fallback
+        else:
+            UserTwoFactorAuthData.objects.create(
+                user=user,
+                preferred_2fa_auth="totp",
+            )
+            expected = "totp"
 
-
-@pytest.mark.django_db
-@pytest.mark.parametrize("default", ["", "no-2fa", "code-sender"])
-def test_get_preferred_2fa_method_of_user_returns_default_when_not_configured(
-    default,
-):
-    with OverrideJwt2faSettings(DEFAULT_2FA_AUTH_METHOD=default):
-        user = get_user()
-        UserTwoFactorAuthData.objects.create(
-            user=user,
-            preferred_2fa_auth=TwoFactorAuthMethod.NOT_CONFIGURED,
-        )
         result = UserTwoFactorAuthData.get_preferred_2fa_method_of_user(user)
-        assert result == default
+
+        assert result == expected
 
 
 @pytest.mark.django_db

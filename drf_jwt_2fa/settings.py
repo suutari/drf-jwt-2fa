@@ -52,8 +52,8 @@ def _get_default_settings() -> dict[str, object]:
         "PREFERRED_2FA_METHOD_GETTER": (
             "drf_jwt_2fa.getters.get_preferred_2fa_method_of_user"
         ),
-        # Default 2FA method to use when a user has no preference.
-        "DEFAULT_2FA_AUTH_METHOD": "code-sender",
+        # Fallback 2FA method used when a user has no preference recorded.
+        "FALLBACK_2FA_METHOD": "code-sender",
         # Behaviour when a user's preferred_2fa_auth is "" or "no-2fa":
         # "error" (default) raises a PermissionDenied error;
         # "allow" issues auth tokens directly without a second factor.
@@ -99,7 +99,7 @@ class ApiSettings:
     EMAIL_SENDER_BODY_OVERRIDE: str | None
     TOTP_SECRET_GETTER: TotpSecretGetter
     PREFERRED_2FA_METHOD_GETTER: PreferredTwoFactorMethodGetter
-    DEFAULT_2FA_AUTH_METHOD: str
+    FALLBACK_2FA_METHOD: str
     NO_2FA_BEHAVIOR: str
     TOTP_ISSUER_NAME: str
     TOTP_VALID_WINDOW: int
