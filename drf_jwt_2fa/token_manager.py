@@ -59,33 +59,41 @@ class CodeTokenManager:
         """
         Create a code token and, when applicable, send a verification code.
 
-        The behaviour depends on the user's preferred 2FA method:
+        The behaviour depends on the user's preferred 2FA method and the
+        ``TRUSTED_2FA_METHODS`` setting:
 
-          * "totp": Build a TOTP code token; no code is sent because the
-            user generates it themselves via an authenticator app.
+          * ``"totp"``: Build a TOTP code token; no code is sent because
+            the user generates it themselves via an authenticator app.
 
-          * "code-sender": Generate a random code, send it via the
-            configured CODE_SENDER, and return a code-sender token.
+          * ``"code-sender"``: Generate a random code, send it via the
+            configured ``CODE_SENDER``, and return a code-sender token.
 
-          * "" or "no-2fa": The action is controlled by NO_2FA_BEHAVIOR:
+          * Any other value in ``TRUSTED_2FA_METHODS`` (e.g. ``"no-2fa"``):
+            Return ``None`` — auth tokens are issued directly without a
+            second factor.
 
-            * "error": Raise TwoFactorAuthNotConfiguredError
-            * "allow": Return None
+          * Any value not in ``TRUSTED_2FA_METHODS`` (including ``""``
+            and ``"no-2fa"`` when not listed): Raise
+            ``TwoFactorAuthNotConfiguredError``.
 
-        Raises TooManyCodeTokensError if the user already has
-        MAX_ACTIVE_CODE_TOKENS_PER_USER unexpired code tokens.
+        Raises ``TooManyCodeTokensError`` if the user already has
+        ``MAX_ACTIVE_CODE_TOKENS_PER_USER`` unexpired code tokens.
         """
         method = api_settings.PREFERRED_2FA_METHOD_GETTER(user)
+        trusted = api_settings.TRUSTED_2FA_METHODS
 
-        if not method or method == TwoFactorAuthMethod.NO_2FA:
-            if api_settings.NO_2FA_BEHAVIOR == "allow":
-                return None
+        if method not in trusted:
             raise TwoFactorAuthNotConfiguredError()
 
         if method == TwoFactorAuthMethod.TOTP:
             return self._create_totp_code_token(user)
 
-        return self._create_code_sender_token(user)
+        if method == TwoFactorAuthMethod.CODE_SENDER:
+            return self._create_code_sender_token(user)
+
+        # Method is trusted but requires no second-factor challenge
+        # (e.g. "no-2fa" explicitly listed in TRUSTED_2FA_METHODS).
+        return None
 
     def _create_code_sender_token(self, user: AbstractBaseUser) -> str:
         code = self.generate_verification_code()

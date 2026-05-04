@@ -55,7 +55,8 @@ class CodeTokenSerializer(Jwt2faSerializer):
     def _create_tokens(self, user: AbstractBaseUser) -> dict[str, str]:
         code_token = self.token_manager.create_code_token(user)
         if code_token is None:
-            # NO_2FA_BEHAVIOR == "allow": skip second factor
+            # Method is in TRUSTED_2FA_METHODS but requires no challenge
+            # (e.g. "no-2fa"): skip second factor and issue auth tokens.
             return _create_auth_tokens_for_user(user, self.context)
         return {
             "token": code_token,

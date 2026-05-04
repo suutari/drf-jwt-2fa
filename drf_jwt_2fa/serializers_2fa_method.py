@@ -17,8 +17,9 @@ class Set2faMethodSerializer(serializers.Serializer):
 
     Constraints:
 
-    * ``"no-2fa"`` is only accepted when the ``NO_2FA_BEHAVIOR`` setting
-      is ``"allow"``; otherwise a ``PermissionDenied`` error is raised.
+    * ``"no-2fa"`` is only accepted when ``"no-2fa"`` is listed in the
+      ``TRUSTED_2FA_METHODS`` setting; otherwise a ``PermissionDenied``
+      error is raised.
     * ``"totp"`` is only accepted when the user already has an active
       TOTP secret enrolled (i.e. :meth:`~.models.UserTwoFactorAuthData.\
 get_totp_secret` returns a non-empty value); otherwise a
@@ -36,8 +37,10 @@ get_totp_secret` returns a non-empty value); otherwise a
         method = attrs["method"]
         user = self.context["request"].user
 
-        can_2fa_be_disabled = api_settings.NO_2FA_BEHAVIOR == "allow"
-        if method == TwoFactorAuthMethod.NO_2FA and not can_2fa_be_disabled:
+        no_2fa_trusted = (
+            TwoFactorAuthMethod.NO_2FA in api_settings.TRUSTED_2FA_METHODS
+        )
+        if method == TwoFactorAuthMethod.NO_2FA and not no_2fa_trusted:
             raise exceptions.PermissionDenied(
                 _("Disabling 2FA is not allowed.")
             )

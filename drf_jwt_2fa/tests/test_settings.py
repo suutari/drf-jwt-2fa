@@ -63,6 +63,16 @@ def test_wrong_timedelta_setting_type_raises_type_error():
     )
 
 
+@OverrideJwt2faSettings(TRUSTED_2FA_METHODS=42)
+def test_wrong_sequence_setting_type_raises_type_error():
+    with pytest.raises(TypeError) as exc:
+        _ = api_settings.TRUSTED_2FA_METHODS
+    assert exc.value.args[0] == (
+        "JWT2FA_AUTH setting 'TRUSTED_2FA_METHODS' "
+        "must be an instance of collections.abc.Sequence[str]"
+    )
+
+
 def test_unknown_setting_is_ignored():
     """An unrecognised key in JWT2FA_AUTH is silently ignored."""
     with OverrideJwt2faSettings(NONEXISTENT_SETTING=True):

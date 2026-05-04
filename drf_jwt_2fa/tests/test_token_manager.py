@@ -563,7 +563,10 @@ def test_check_totp_code_token_cannot_be_reused():
 
 
 @pytest.mark.django_db
-@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="error", FALLBACK_2FA_METHOD="no-2fa")
+@OverrideJwt2faSettings(
+    TRUSTED_2FA_METHODS=["code-sender", "totp"],
+    FALLBACK_2FA_METHOD="no-2fa",
+)
 def test_create_code_token_raises_when_2fa_not_configured():
     user = get_user()  # no UserTwoFactorAuthData record
     manager = CodeTokenManager()
@@ -573,7 +576,10 @@ def test_create_code_token_raises_when_2fa_not_configured():
 
 
 @pytest.mark.django_db
-@OverrideJwt2faSettings(NO_2FA_BEHAVIOR="allow", FALLBACK_2FA_METHOD="no-2fa")
+@OverrideJwt2faSettings(
+    TRUSTED_2FA_METHODS=["code-sender", "totp", "no-2fa"],
+    FALLBACK_2FA_METHOD="no-2fa",
+)
 def test_create_code_token_returns_none_when_2fa_not_configured_and_allow():
     user = get_user()  # no UserTwoFactorAuthData record
     manager = CodeTokenManager()

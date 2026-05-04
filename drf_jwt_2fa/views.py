@@ -89,7 +89,7 @@ class Set2faMethodView(APIView):
       TOTP secret to already be enrolled via ``POST /totp/setup/`` and
       ``POST /totp/confirm/``.
     * ``"no-2fa"`` -- disable the second factor entirely.  Only allowed
-      when the ``NO_2FA_BEHAVIOR`` setting is ``"allow"``.
+      when ``"no-2fa"`` is listed in the ``TRUSTED_2FA_METHODS`` setting.
 
     Requires a valid JWT access token (``Authorization: Bearer <token>``).
     """

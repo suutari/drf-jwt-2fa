@@ -40,7 +40,9 @@ def test_set_2fa_method_to_code_sender():
 def test_set_2fa_method_to_no_2fa_when_allowed():
     user = get_user()
     client = _auth_client(user)
-    with OverrideJwt2faSettings(NO_2FA_BEHAVIOR="allow"):
+    with OverrideJwt2faSettings(
+        TRUSTED_2FA_METHODS=["code-sender", "totp", "no-2fa"]
+    ):
         result = client.post(
             reverse("set-2fa-method"), data={"method": "no-2fa"}
         )

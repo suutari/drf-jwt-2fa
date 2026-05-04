@@ -136,9 +136,10 @@ values are:
   (e-mail by default).
 * ``"totp"`` -- Require a TOTP code from an authenticator app.
 
-For the ``"no-2fa"`` value the ``NO_2FA_BEHAVIOR`` setting
-controls what happens: ``"error"`` (default) rejects the login;
-``"allow"`` issues auth tokens directly without a second factor.
+For the ``"no-2fa"`` value the behaviour depends on the
+``TRUSTED_2FA_METHODS`` setting: if the method is listed there, auth
+tokens are issued directly without a second factor; otherwise the login
+is rejected with ``HTTP 403``.
 
 The 2FA method is looked up via the ``PREFERRED_2FA_METHOD_GETTER``
 setting (a callable that receives a user and returns a string).  The
@@ -189,15 +190,8 @@ Authenticated users can change their preferred 2FA method via:
 ``POST /2fa-method/``
   Body: ``{"method": "<method>"}``
 
-  Sets the user's preferred 2FA method.  Accepted values:
-
-  * ``"code-sender"`` -- receive a one-time code via the configured sender
-    (e.g. e-mail).
-  * ``"totp"`` -- use a TOTP authenticator app.  Requires an active TOTP
-    secret to already be enrolled via the setup and confirm endpoints.
-  * ``"no-2fa"`` -- disable the second factor entirely.  Only permitted
-    when ``NO_2FA_BEHAVIOR`` is set to ``"allow"``; returns
-    ``HTTP 403`` otherwise.
+  Sets the user's preferred 2FA method.  Accepted values are determined
+  by the TRUSTED_2FA_METHODS setting.
 
   Returns ``HTTP 200 {}`` on success.
 
@@ -298,10 +292,11 @@ available settings with their default values::
       # not yet configured.  Defaults to "code-sender".
       'FALLBACK_2FA_METHOD': 'code-sender',
 
-      # What to do when a user's preferred method is "" or "no-2fa":
-      # "error" raises a PermissionDenied (HTTP 403, default);
-      # "allow" issues auth tokens directly without a second factor.
-      'NO_2FA_BEHAVIOR': 'error',
+      # 2FA methods considered trusted (complete the second factor).
+      # Any method NOT in this list causes login to be rejected with
+      # HTTP 403.  Include "no-2fa" to allow users to disable 2FA.
+      # Defaults to all built-in methods.
+      'TRUSTED_2FA_METHODS': ['code-sender', 'totp'],
 
       # Issuer name shown in authenticator apps during TOTP enrollment
       'TOTP_ISSUER_NAME': 'drf-jwt-2fa',

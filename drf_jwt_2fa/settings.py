@@ -1,4 +1,5 @@
 import datetime
+from collections.abc import Sequence
 from typing import Protocol, get_type_hints, runtime_checkable
 
 from django.conf import settings
@@ -54,10 +55,11 @@ def _get_default_settings() -> dict[str, object]:
         ),
         # Fallback 2FA method used when a user has no preference recorded.
         "FALLBACK_2FA_METHOD": "code-sender",
-        # Behaviour when a user's preferred_2fa_auth is "" or "no-2fa":
-        # "error" (default) raises a PermissionDenied error;
-        # "allow" issues auth tokens directly without a second factor.
-        "NO_2FA_BEHAVIOR": "error",
+        # 2FA methods considered trusted (complete the second factor).
+        # Any method NOT in this list causes login to be rejected with
+        # HTTP 403.  Include "no-2fa" to allow users to disable 2FA.
+        # Defaults to all built-in methods.
+        "TRUSTED_2FA_METHODS": ["code-sender", "totp"],
         # Issuer name shown in authenticator apps during TOTP enrollment
         "TOTP_ISSUER_NAME": "drf-jwt-2fa",
         # How many 30-second time steps around the current time to accept
@@ -100,7 +102,7 @@ class ApiSettings:
     TOTP_SECRET_GETTER: TotpSecretGetter
     PREFERRED_2FA_METHOD_GETTER: PreferredTwoFactorMethodGetter
     FALLBACK_2FA_METHOD: str
-    NO_2FA_BEHAVIOR: str
+    TRUSTED_2FA_METHODS: Sequence[str]
     TOTP_ISSUER_NAME: str
     TOTP_VALID_WINDOW: int
     TOTP_ENCRYPTION_KEY: bytes
