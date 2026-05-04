@@ -1,7 +1,7 @@
 import logging
 import secrets
 import time
-from typing import NotRequired, TypedDict
+from typing import NamedTuple, NotRequired, TypedDict
 
 import jwt
 from django.contrib.auth import get_user_model
@@ -17,6 +17,7 @@ from .exceptions import (
     TooManyAuthAttemptsError,
     TooManyCodeTokensError,
     TwoFactorAuthNotConfiguredError,
+    Unknown2faMethodError,
     VerificationCodeSendingError,
 )
 from .models import TwoFactorAuthMethod
@@ -34,6 +35,11 @@ class CodeTokenPayload(TypedDict):
     typ: NotRequired[str]  # Token type (code-sender or totp)
     vch: NotRequired[str]  # Verification Code Hash
     vcn: NotRequired[str]  # Verification Code Nonce
+
+
+class CodeVerificationResult(NamedTuple):
+    user_id: str
+    trusted: bool
 
 
 LOG = logging.getLogger(__name__)
@@ -60,40 +66,37 @@ class CodeTokenManager:
         Create a code token and, when applicable, send a verification code.
 
         The behaviour depends on the user's preferred 2FA method and the
-        ``TRUSTED_2FA_METHODS`` setting:
+        TRUSTED_2FA_METHODS setting:
 
-          * ``"totp"``: Build a TOTP code token; no code is sent because
+          * "totp": Build a TOTP code token; no code is sent because
             the user generates it themselves via an authenticator app.
 
-          * ``"code-sender"``: Generate a random code, send it via the
-            configured ``CODE_SENDER``, and return a code-sender token.
+          * "code-sender": Generate a random code, send it via the
+            configured CODE_SENDER, and return a code-sender token.
 
-          * Any other value in ``TRUSTED_2FA_METHODS`` (e.g. ``"no-2fa"``):
-            Return ``None`` — auth tokens are issued directly without a
-            second factor.
+          * "no-2fa": Return None if "no-2fa" is in TRUSTED_2FA_METHODS,
+            otherwise raise TwoFactorAuthNotConfiguredError.
 
-          * Any value not in ``TRUSTED_2FA_METHODS`` (including ``""``
-            and ``"no-2fa"`` when not listed): Raise
-            ``TwoFactorAuthNotConfiguredError``.
+          * Any other value: Raise Unknown2faMethodError.
 
-        Raises ``TooManyCodeTokensError`` if the user already has
-        ``MAX_ACTIVE_CODE_TOKENS_PER_USER`` unexpired code tokens.
+        Note that "code-sender" and "totp" always produce a challenge
+        token regardless of TRUSTED_2FA_METHODS; the trust decision is
+        made later by check_code_token_and_code.
+
+        Raises TooManyCodeTokensError, if the user already has
+        MAX_ACTIVE_CODE_TOKENS_PER_USER unexpired code tokens.
         """
         method = api_settings.PREFERRED_2FA_METHOD_GETTER(user)
-        trusted = api_settings.TRUSTED_2FA_METHODS
-
-        if method not in trusted:
-            raise TwoFactorAuthNotConfiguredError()
-
-        if method == TwoFactorAuthMethod.TOTP:
-            return self._create_totp_code_token(user)
 
         if method == TwoFactorAuthMethod.CODE_SENDER:
             return self._create_code_sender_token(user)
-
-        # Method is trusted but requires no second-factor challenge
-        # (e.g. "no-2fa" explicitly listed in TRUSTED_2FA_METHODS).
-        return None
+        elif method == TwoFactorAuthMethod.TOTP:
+            return self._create_totp_code_token(user)
+        elif method == TwoFactorAuthMethod.NO_2FA:
+            if method in api_settings.TRUSTED_2FA_METHODS:
+                return None
+            raise TwoFactorAuthNotConfiguredError()
+        raise Unknown2faMethodError()
 
     def _create_code_sender_token(self, user: AbstractBaseUser) -> str:
         code = self.generate_verification_code()
@@ -110,21 +113,24 @@ class CodeTokenManager:
         self._check_and_register_active_token(str(user.pk), payload["exp"])
         return self.encode_token(payload)
 
-    def check_code_token_and_code(self, token: str, code: str) -> str:
+    def check_code_token_and_code(
+        self, token: str, code: str
+    ) -> CodeVerificationResult:
         """
         Check code token and related verification code.
 
         Check integrity of the given code token and check that the
-        verification code is correct for the given token.  Return
-        primary key of the verified user, if both are OK, or raise a
-        validation error otherwise.
+        verification code is correct for the given token.  Return a
+        CodeVerificationResult if both are OK, or raise a validation
+        error otherwise.
+
+        The result has "user_id" and "trusted" fields. The user_id field
+        contains the primary key of the authenticating user and the
+        trusted field tells whether the token type is listed in
+        TRUSTED_2FA_METHODS.
 
         Raises TooManyAuthAttemptsError if the token has already
         exceeded MAX_AUTH_ATTEMPTS_PER_CODE_TOKEN failed attempts.
-
-        :param token: Code token to check
-        :param code: Verification code to check against the token
-        :return: Primary key of the verified user (as string)
         """
         payload = self.decode_token(token)
         self._check_auth_attempts_not_exceeded(token, payload)
@@ -141,7 +147,10 @@ class CodeTokenManager:
             self._record_failed_auth_attempt(token, payload)
             raise exceptions.AuthenticationFailed()
         self._reserve_token(payload)
-        return payload.get("uid")
+        return CodeVerificationResult(
+            user_id=payload.get("uid"),
+            trusted=(token_type in api_settings.TRUSTED_2FA_METHODS),
+        )
 
     def _verify_totp_code(self, payload: CodeTokenPayload, code: str) -> bool:
         user_id = payload.get("uid")

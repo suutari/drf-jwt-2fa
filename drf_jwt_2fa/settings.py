@@ -40,6 +40,7 @@ def _get_default_settings() -> dict[str, object]:
         "AUTH_RESULT_ACCESS_TOKEN_KEY": "access",
         "AUTH_RESULT_REFRESH_TOKEN_KEY": "refresh",
         "AUTH_RESULT_OTHER_TOKEN_KEY": "token",
+        "AUTH_RESULT_ENROLLMENT_TOKEN_KEY": "enrollment_token",
         "CODE_SENDER": "drf_jwt_2fa.sending.send_verification_code_via_email",
         "EMAIL_SENDER_FROM_ADDRESS": settings.DEFAULT_FROM_EMAIL,
         "EMAIL_SENDER_SUBJECT_OVERRIDE": None,
@@ -60,6 +61,9 @@ def _get_default_settings() -> dict[str, object]:
         # HTTP 403.  Include "no-2fa" to allow users to disable 2FA.
         # Defaults to all built-in methods.
         "TRUSTED_2FA_METHODS": ["code-sender", "totp"],
+        # How long an enrollment token (issued when a user's 2FA method
+        # is not yet trusted) remains valid.
+        "ENROLLMENT_TOKEN_EXPIRATION_TIME": datetime.timedelta(minutes=15),
         # Issuer name shown in authenticator apps during TOTP enrollment
         "TOTP_ISSUER_NAME": "drf-jwt-2fa",
         # How many 30-second time steps around the current time to accept
@@ -95,6 +99,7 @@ class ApiSettings:
     AUTH_RESULT_ACCESS_TOKEN_KEY: str
     AUTH_RESULT_REFRESH_TOKEN_KEY: str
     AUTH_RESULT_OTHER_TOKEN_KEY: str
+    AUTH_RESULT_ENROLLMENT_TOKEN_KEY: str
     CODE_SENDER: CodeSender
     EMAIL_SENDER_FROM_ADDRESS: str
     EMAIL_SENDER_SUBJECT_OVERRIDE: str | None
@@ -103,6 +108,7 @@ class ApiSettings:
     PREFERRED_2FA_METHOD_GETTER: PreferredTwoFactorMethodGetter
     FALLBACK_2FA_METHOD: str
     TRUSTED_2FA_METHODS: Sequence[str]
+    ENROLLMENT_TOKEN_EXPIRATION_TIME: datetime.timedelta
     TOTP_ISSUER_NAME: str
     TOTP_VALID_WINDOW: int
     TOTP_ENCRYPTION_KEY: bytes

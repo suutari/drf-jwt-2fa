@@ -1,7 +1,7 @@
 import datetime
 import threading
 import time
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 import freezegun
 import pyotp
@@ -17,6 +17,7 @@ from drf_jwt_2fa.exceptions import (
     TooManyAuthAttemptsError,
     TooManyCodeTokensError,
     TwoFactorAuthNotConfiguredError,
+    Unknown2faMethodError,
     VerificationCodeSendingError,
 )
 from drf_jwt_2fa.sending import CodeSendingError
@@ -161,8 +162,9 @@ def test_check_code_token_and_code_success():
     user = get_user_with_code_sender_2fa()
     token = manager.create_code_token(user)
     code = get_verification_code_from_mailbox()
-    user_id = manager.check_code_token_and_code(token, code)
-    assert user_id == str(user.pk)
+    result = manager.check_code_token_and_code(token, code)
+    assert result.user_id == str(user.pk)
+    assert result.trusted is True
 
 
 @pytest.mark.django_db
@@ -173,8 +175,8 @@ def test_check_code_token_and_code_cannot_be_reused():
     code = get_verification_code_from_mailbox()
 
     # First use succeeds
-    user_id = manager.check_code_token_and_code(token, code)
-    assert user_id == str(user.pk)
+    result = manager.check_code_token_and_code(token, code)
+    assert result.user_id == str(user.pk)
 
     # Second use with the same token and correct code is rejected
     with pytest.raises(TokenAlreadyUsedError):
@@ -320,8 +322,8 @@ def test_check_code_token_and_code_succeeds_within_attempt_limit():
         with pytest.raises(exceptions.AuthenticationFailed):
             manager.check_code_token_and_code(token, wrong_code)
 
-    user_id = manager.check_code_token_and_code(token, correct_code)
-    assert user_id == str(user.pk)
+    result = manager.check_code_token_and_code(token, correct_code)
+    assert result.user_id == str(user.pk)
 
 
 @pytest.mark.django_db
@@ -457,8 +459,8 @@ def test_check_code_token_and_code_no_attempt_limit_when_setting_is_none():
             manager.check_code_token_and_code(token, wrong_code)
 
     # With the setting disabled the correct code must still be accepted
-    user_id = manager.check_code_token_and_code(token, correct_code)
-    assert user_id is not None
+    result = manager.check_code_token_and_code(token, correct_code)
+    assert result.user_id is not None
 
 
 @pytest.mark.django_db
@@ -522,9 +524,10 @@ def test_check_code_token_and_code_success_with_totp():
 
     token = manager.create_code_token(user)
     code = pyotp.TOTP(secret).now()
-    user_id = manager.check_code_token_and_code(token, code)
+    result = manager.check_code_token_and_code(token, code)
 
-    assert user_id == str(user.pk)
+    assert result.user_id == str(user.pk)
+    assert result.trusted is True
 
 
 @pytest.mark.django_db
@@ -550,8 +553,9 @@ def test_check_totp_code_token_cannot_be_reused():
     token = manager.create_code_token(user)
     code = pyotp.TOTP(secret).now()
 
-    user_id = manager.check_code_token_and_code(token, code)
-    assert user_id == str(user.pk)
+    result = manager.check_code_token_and_code(token, code)
+    assert result.user_id == str(user.pk)
+    assert result.trusted is True
 
     with pytest.raises(TokenAlreadyUsedError):
         manager.check_code_token_and_code(token, code)
@@ -623,3 +627,11 @@ def test_check_totp_code_token_fails_when_secret_missing():
 
     with pytest.raises(exceptions.AuthenticationFailed):
         manager.check_code_token_and_code(token, code)
+
+
+@OverrideJwt2faSettings(PREFERRED_2FA_METHOD_GETTER=lambda user: "unknown")
+def test_user_with_unknown_2fa_method_raises_when_creating_code_token():
+    user = Mock()
+    manager = CodeTokenManager()
+    with pytest.raises(Unknown2faMethodError):
+        manager.create_code_token(user)

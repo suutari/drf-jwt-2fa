@@ -6,6 +6,7 @@ from rest_framework_simplejwt import views as jwt_views
 
 from . import serializers, totp_serializers
 from .authentication import Jwt2faAuthentication
+from .enrollment_token import EnrollmentTokenAuthentication
 from .serializers_2fa_method import Set2faMethodSerializer
 from .throttling import AuthTokenThrottler, CodeTokenThrottler
 
@@ -36,13 +37,18 @@ class SetupTotpView(APIView):
     and an ``otpauth://`` provisioning URI that can be displayed as a
     QR code for scanning by an authenticator app.
 
-    Requires a valid JWT access token (``Authorization: Bearer <token>``).
+    Requires a valid JWT access token (``Authorization: Bearer <token>``)
+    or an enrollment token returned by ``POST /auth/`` when the user's
+    2FA method is not yet in ``TRUSTED_2FA_METHODS``.
 
     After scanning the QR code, call ``POST /totp/confirm/`` with the
     first code shown by the authenticator app to activate TOTP.
     """
 
-    authentication_classes = (Jwt2faAuthentication,)
+    authentication_classes = (
+        EnrollmentTokenAuthentication,
+        Jwt2faAuthentication,
+    )
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):
@@ -62,10 +68,15 @@ class ConfirmTotpView(APIView):
     the pending secret becomes the active TOTP secret and the user's
     preferred 2FA method is switched to ``"totp"``.
 
-    Requires a valid JWT access token (``Authorization: Bearer <token>``).
+    Requires a valid JWT access token (``Authorization: Bearer <token>``)
+    or an enrollment token returned by ``POST /auth/`` when the user's
+    2FA method is not yet in ``TRUSTED_2FA_METHODS``.
     """
 
-    authentication_classes = (Jwt2faAuthentication,)
+    authentication_classes = (
+        EnrollmentTokenAuthentication,
+        Jwt2faAuthentication,
+    )
     permission_classes = (IsAuthenticated,)
 
     def post(self, request, *args, **kwargs):

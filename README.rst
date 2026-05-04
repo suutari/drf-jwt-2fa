@@ -136,10 +136,10 @@ values are:
   (e-mail by default).
 * ``"totp"`` -- Require a TOTP code from an authenticator app.
 
-For the ``"no-2fa"`` value the behaviour depends on the
-``TRUSTED_2FA_METHODS`` setting: if the method is listed there, auth
-tokens are issued directly without a second factor; otherwise the login
-is rejected with ``HTTP 403``.
+Whether a given method results in a full Auth Token or an Enrollment
+Token (or an error) is controlled by the ``TRUSTED_2FA_METHODS``
+setting.  Methods not listed there are not accepted as a completed
+second factor.
 
 The 2FA method is looked up via the ``PREFERRED_2FA_METHOD_GETTER``
 setting (a callable that receives a user and returns a string).  The
@@ -149,7 +149,8 @@ TOTP Enrollment
 ---------------
 
 Users enroll a TOTP authenticator app using two endpoints that require
-a valid JWT access token (``Authorization: Bearer <token>``):
+a valid JWT access token **or** an enrollment token (see
+`Enrollment Token (Bootstrap Flow)`_ below):
 
 ``POST /totp/setup/``
   Returns a ``secret`` (base32 string) and a ``provisioning_uri``
@@ -182,8 +183,24 @@ Example enrollment flow::
   POST /get-code/ {"username": "alice", "password": "..."} -> totp_code_token
   POST /auth/     {"code_token": "...", "code": "654321"}  -> access token
 
+Enrollment Token (Bootstrap Flow)
+---------------------------------
+
+When ``"code-sender"`` is not in ``TRUSTED_2FA_METHODS`` (for example,
+because you want to require TOTP for everyone), a user who has not yet
+enrolled a TOTP authenticator cannot complete a full login.  To allow
+such users to set up TOTP without a chicken-and-egg problem, the
+``POST /auth/`` endpoint returns an *enrollment token* instead of full
+auth tokens when the user's 2FA method is not trusted.
+
+The enrollment token is short-lived (default: 15 minutes) and grants
+access only to the TOTP setup and confirm endpoints.  The
+``user_logged_in`` signal is **not** fired when an enrollment token is
+issued, because the user has not completed the full authentication flow
+yet.
+
 Changing the Preferred 2FA Method
-----------------------------------
+---------------------------------
 
 Authenticated users can change their preferred 2FA method via:
 
@@ -292,11 +309,19 @@ available settings with their default values::
       # not yet configured.  Defaults to "code-sender".
       'FALLBACK_2FA_METHOD': 'code-sender',
 
-      # 2FA methods considered trusted (complete the second factor).
-      # Any method NOT in this list causes login to be rejected with
-      # HTTP 403.  Include "no-2fa" to allow users to disable 2FA.
-      # Defaults to all built-in methods.
+      # Which 2FA methods are accepted as a completed second factor at
+      # POST /auth/ and allowed to be set via POST /2fa-method/.  Methods
+      # not in this list yield an Enrollment Token rather than a full Auth
+      # Token.  Include "no-2fa" to allow users to skip the second factor
+      # entirely.
       'TRUSTED_2FA_METHODS': ['code-sender', 'totp'],
+
+      # Key used for the enrollment token in the POST /auth/ response
+      # when the user's 2FA method is not in TRUSTED_2FA_METHODS.
+      'AUTH_RESULT_ENROLLMENT_TOKEN_KEY': 'enrollment_token',
+
+      # How long an enrollment token remains valid.
+      'ENROLLMENT_TOKEN_EXPIRATION_TIME': datetime.timedelta(minutes=15),
 
       # Issuer name shown in authenticator apps during TOTP enrollment
       'TOTP_ISSUER_NAME': 'drf-jwt-2fa',

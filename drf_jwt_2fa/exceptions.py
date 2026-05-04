@@ -46,3 +46,7 @@ class TwoFactorAuthNotConfiguredError(exceptions.PermissionDenied):
     default_detail = _(
         "Two-factor authentication is not configured for this account."
     )
+
+
+class Unknown2faMethodError(KeyError):
+    pass
