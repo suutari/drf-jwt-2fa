@@ -44,8 +44,10 @@ def ensure_tox_env_is_correct():
             python_ver = parse_ver_str(part.removeprefix("py"))
             infos.append(check_python_version(python_ver))
         elif part.startswith("django"):
-            django_ver = parse_ver_str(part.removeprefix("django"))
-            infos.append(check_django_version(django_ver))
+            ver_part = part.removeprefix("django")
+            if ver_part != "LATEST":
+                django_ver = parse_ver_str(ver_part)
+                infos.append(check_django_version(django_ver))
         else:
             raise ValueError(f"Unknown part in Tox environment name: {part}")
 
