@@ -1,3 +1,4 @@
+from collections.abc import Mapping
 from typing import Any, NamedTuple
 
 from django.contrib.auth import authenticate, get_user_model
@@ -110,7 +111,7 @@ class AuthTokenSerializer(Jwt2faSerializer):
 
 
 def _create_auth_tokens_for_user(
-    user: AbstractBaseUser, context: dict[str, Any]
+    user: AbstractBaseUser, context: Mapping[str, Any]
 ) -> dict[str, str]:
     token = _get_token_class().for_user(user)
     drf_request = context.get("request")
