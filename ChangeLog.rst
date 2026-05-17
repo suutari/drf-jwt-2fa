@@ -1,10 +1,15 @@
 Django Rest Framework JWT 2FA Change Log
 ========================================
 
-Unreleased
-----------
+2.0.0 (Released 2026-05-17 15:18 +0300)
+---------------------------------------
 
 * Add TOTP (Time-based One-Time Password) support
+
+  * TOTP enrollment endpoints (setup and confirm)
+  * Encrypt TOTP secrets at rest using Fernet symmetric encryption
+  * New ``UserTwoFactorAuthData`` model and Django admin
+  * Enrollment token for bootstrapping the TOTP flow
 
 * Add endpoint for changing the preferred 2FA method
 
@@ -16,10 +21,18 @@ Unreleased
 
 * Add type annotations to all public and private methods
 
+* Add typed settings with runtime type checking
+
 * Pass ``request`` to ``authenticate()`` in ``CodeTokenSerializer`` to
   support authentication backends that require the request object
 
 * Normalize user primary key to string in code token payload
+
+* Tooling and Test Changes:
+
+  * Use versioningit for dynamic versioning based on Git tags
+  * Add release workflow for publishing to PyPI
+  * Add ``test-whole-flow`` integration test script and CI job
 
 1.0.0 (Released 2026-04-24 19:54 +0200)
 ---------------------------------------
