@@ -134,5 +134,11 @@ django_settings_module = "test_settings"
 
 [tool.mypy]
 files = ["."]
+strict = true
 exclude_gitignore = true
 plugins = ["mypy_django_plugin.main"]
+
+[[tool.mypy.overrides]]
+module = ["conftest", "drf_jwt_2fa.tests.*"]
+disallow_untyped_defs = false
+disallow_untyped_calls = false
