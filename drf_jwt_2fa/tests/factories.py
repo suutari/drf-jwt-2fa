@@ -64,7 +64,7 @@ def get_code_token(verification_code="1234567"):
     preferred-2FA-method lookup (which requires a database).
     """
     manager = CodeTokenManager()
-    manager.generate_verification_code = lambda: verification_code
+    manager.generate_verification_code = lambda: verification_code  # type: ignore
     user = Mock()
     user.pk = 9876
     user.username = "testuser"

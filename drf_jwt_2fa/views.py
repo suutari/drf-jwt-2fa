@@ -1,5 +1,6 @@
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework_simplejwt import views as jwt_views
@@ -51,7 +52,9 @@ class SetupTotpView(APIView):
     )
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self, request: Request, *args: object, **kwargs: object
+    ) -> Response:
         serializer = totp_serializers.SetupTotpSerializer(
             data={}, context={"request": request}
         )
@@ -79,7 +82,9 @@ class ConfirmTotpView(APIView):
     )
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self, request: Request, *args: object, **kwargs: object
+    ) -> Response:
         serializer = totp_serializers.ConfirmTotpSerializer(
             data=request.data, context={"request": request}
         )
@@ -108,7 +113,9 @@ class Set2faMethodView(APIView):
     authentication_classes = (Jwt2faAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    def post(self, request, *args, **kwargs):
+    def post(
+        self, request: Request, *args: object, **kwargs: object
+    ) -> Response:
         serializer = Set2faMethodSerializer(
             data=request.data, context={"request": request}
         )

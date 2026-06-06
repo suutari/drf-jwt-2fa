@@ -9,7 +9,7 @@ from .models import TwoFactorAuthMethod, UserTwoFactorAuthData
 from .settings import api_settings
 
 
-class Set2faMethodSerializer(serializers.Serializer):
+class Set2faMethodSerializer(serializers.Serializer[dict[str, str]]):
     """
     Allows an authenticated user to change their preferred 2FA method.
     The ``method`` field accepts ``"code-sender"``, ``"totp"``, or
@@ -33,7 +33,7 @@ get_totp_secret` returns a non-empty value); otherwise a
         help_text=_("Preferred 2FA method"),
     )
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         method = attrs["method"]
         user = self.context["request"].user
 
@@ -54,7 +54,7 @@ get_totp_secret` returns a non-empty value); otherwise a
 
         return attrs
 
-    def save(self, **kwargs):
+    def save(self, **kwargs: object) -> dict[str, str]:
         user = self.context["request"].user
         method = self.validated_data["method"]
         UserTwoFactorAuthData.objects.update_or_create(

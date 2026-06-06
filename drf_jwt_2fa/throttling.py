@@ -33,8 +33,9 @@ class CodeTokenThrottler(throttling.SimpleRateThrottle):
 class AuthTokenThrottler(throttling.BaseThrottle):
     cache = default_cache
     cache_key_template = "drf_jwt_2fa:throttle:auth:{code_token_hash}"
+    wait_time: float | None = None
 
-    def allow_request(self, request: Request, view: APIView) -> bool:
+    def allow_request(self, request: Request, view: APIView | None) -> bool:
         key = self.get_cache_key(request, view)
         if not key:
             return True
@@ -47,10 +48,12 @@ class AuthTokenThrottler(throttling.BaseThrottle):
         self.cache.set(key, next_allowed, timeout=self.retry_wait_seconds)
         return True
 
-    def wait(self) -> float:
+    def wait(self) -> float | None:
         return self.wait_time
 
-    def get_cache_key(self, request: Request, view: APIView) -> str | None:
+    def get_cache_key(
+        self, request: Request, view: APIView | None = None
+    ) -> str | None:
         token = request.data.get("code_token")
         if not token:
             return None

@@ -10,6 +10,9 @@ from django.test.client import RequestFactory
 from django.urls import reverse
 from freezegun import freeze_time
 from rest_framework import status
+from rest_framework.parsers import JSONParser
+from rest_framework.request import Request as DRFRequest
+from rest_framework.test import APIRequestFactory
 
 from drf_jwt_2fa.throttling import AuthTokenThrottler, CodeTokenThrottler
 from drf_jwt_2fa.utils import get_code_token_hash
@@ -187,21 +190,23 @@ def test_code_token_throttling():
         assert result5.status_code == status.HTTP_401_UNAUTHORIZED
 
 
+def make_auth_request(data):
+    """Create a DRF Request with JSON-encoded data for throttler tests."""
+    wsgi = APIRequestFactory().post("/", data, format="json")
+    return DRFRequest(wsgi, parsers=[JSONParser()])
+
+
 def test_auth_token_throttler_cache_key_no_token():
     """AuthTokenThrottler returns None cache key when no code_token."""
-    rf = RequestFactory()
-    request = rf.post("/", data={}, content_type="application/json")
-    request.data = {}
+    request = make_auth_request({})
     throttler = AuthTokenThrottler()
     assert throttler.get_cache_key(request, None) is None
 
 
 def test_auth_token_throttler_cache_key_uses_get_code_token_hash():
     """AuthTokenThrottler cache key is based on get_code_token_hash."""
-    rf = RequestFactory()
     token = get_code_token()
-    request = rf.post("/")
-    request.data = {"code_token": token}
+    request = make_auth_request({"code_token": token})
     throttler = AuthTokenThrottler()
 
     key = throttler.get_cache_key(request, None)
@@ -212,15 +217,12 @@ def test_auth_token_throttler_cache_key_uses_get_code_token_hash():
 
 def test_auth_token_throttler_cache_key_differs_per_token():
     """Different code tokens produce different cache keys."""
-    rf = RequestFactory()
     token_a = get_code_token()
     token_b = get_code_token()
     throttler = AuthTokenThrottler()
 
     def make_request(token):
-        request = rf.post("/")
-        request.data = {"code_token": token}
-        return request
+        return make_auth_request({"code_token": token})
 
     key_a = throttler.get_cache_key(make_request(token_a), None)
     key_b = throttler.get_cache_key(make_request(token_b), None)
@@ -231,10 +233,8 @@ def test_auth_token_throttler_cache_key_differs_per_token():
 @freeze_time("2020-01-02 13:00:00")
 def test_auth_token_throttler_cache_key_stored_in_cache():
     """The key stored in cache matches get_code_token_hash of the token."""
-    rf = RequestFactory()
     token = get_code_token()
-    request = rf.post("/")
-    request.data = {"code_token": token}
+    request = make_auth_request({"code_token": token})
     token_hash = get_code_token_hash(token)
 
     cache = LocMemCache("test_auth_cache", {})

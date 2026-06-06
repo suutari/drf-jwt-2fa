@@ -3,11 +3,11 @@ from collections.abc import Mapping, Sequence
 from typing import get_args, get_origin
 
 
-def is_instance_of_type(value: object, tp: type) -> bool:
+def is_instance_of_type(value: object, tp: type | types.UnionType) -> bool:
     return _isinstance(value, tp)
 
 
-def _isinstance(value: object, tp: type) -> bool:
+def _isinstance(value: object, tp: type | types.UnionType) -> bool:
     """
     Check if value is an instance of type tp, handling type annotations.
     """

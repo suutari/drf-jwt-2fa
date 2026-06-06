@@ -14,7 +14,7 @@ from .totp import (
 )
 
 
-class SetupTotpSerializer(serializers.Serializer):
+class SetupTotpSerializer(serializers.Serializer[dict[str, str]]):
     """
     Serializer for the TOTP setup endpoint.
 
@@ -26,10 +26,10 @@ class SetupTotpSerializer(serializers.Serializer):
     dict with ``secret`` and ``provisioning_uri`` keys.
     """
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, object]) -> dict[str, object]:
         return attrs
 
-    def save(self, **kwargs):
+    def save(self, **kwargs: object) -> dict[str, str]:
         user = self.context["request"].user
         secret = generate_totp_secret()
         data, _created = UserTwoFactorAuthData.objects.get_or_create(user=user)
@@ -42,7 +42,7 @@ class SetupTotpSerializer(serializers.Serializer):
         }
 
 
-class ConfirmTotpSerializer(serializers.Serializer):
+class ConfirmTotpSerializer(serializers.Serializer[dict[str, str]]):
     """
     Serializer for the TOTP confirm endpoint.
 
@@ -59,7 +59,7 @@ class ConfirmTotpSerializer(serializers.Serializer):
         help_text=_("TOTP code from your authenticator app"),
     )
 
-    def validate(self, attrs):
+    def validate(self, attrs: dict[str, str]) -> dict[str, str | object]:
         user = self.context["request"].user
         data = UserTwoFactorAuthData.objects.filter(user=user).first()
         pending_secret = data.get_pending_totp_secret() if data else None
@@ -72,13 +72,14 @@ class ConfirmTotpSerializer(serializers.Serializer):
         if not verify_totp_code(pending_secret, attrs["code"], valid_window):
             raise exceptions.AuthenticationFailed(_("Invalid TOTP code."))
 
-        # Stash for save(); avoids a second DB query.
-        attrs["_data"] = data
-        attrs["_pending_secret"] = pending_secret
-        return attrs
+        return {  # Add data and pending secret to avoid second DB query
+            **attrs,
+            "_data": data,
+            "_pending_secret": pending_secret,
+        }
 
-    def save(self, **kwargs):
-        data = self.validated_data["_data"]
+    def save(self, **kwargs: dict[str, object]) -> dict[str, str]:
+        data: UserTwoFactorAuthData = self.validated_data["_data"]
         pending_secret = self.validated_data["_pending_secret"]
         data.set_totp_secret(pending_secret)
         data.set_pending_totp_secret("")

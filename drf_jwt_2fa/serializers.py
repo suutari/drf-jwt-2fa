@@ -8,6 +8,7 @@ from django.utils.module_loading import import_string
 from rest_framework import exceptions, serializers
 from rest_framework_simplejwt import settings as jwt_settings
 from rest_framework_simplejwt.serializers import PasswordField
+from rest_framework_simplejwt.tokens import Token
 
 from .enrollment_token import EnrollmentToken
 from .settings import api_settings
@@ -20,7 +21,7 @@ class UserData(NamedTuple):
     trusted: bool | None
 
 
-class Jwt2faSerializer(serializers.Serializer):
+class Jwt2faSerializer(serializers.Serializer[dict[str, str]]):
     token_manager_class = CodeTokenManager
 
     def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -113,7 +114,10 @@ class AuthTokenSerializer(Jwt2faSerializer):
 def _create_auth_tokens_for_user(
     user: AbstractBaseUser, context: Mapping[str, Any]
 ) -> dict[str, str]:
-    token = _get_token_class().for_user(user)
+    token_serializer_name = jwt_settings.api_settings.TOKEN_OBTAIN_SERIALIZER
+    token_serializer = import_string(token_serializer_name)
+    token_cls: type[Token] = token_serializer.token_class
+    token = token_cls.for_user(user)
     drf_request = context.get("request")
     request = drf_request._request if drf_request else None
     user_logged_in.send(sender=type(user), request=request, user=user)
@@ -127,9 +131,3 @@ def _create_auth_tokens_for_user(
         }
     token_key = api_settings.AUTH_RESULT_OTHER_TOKEN_KEY
     return {token_key: str(token)}
-
-
-def _get_token_class():
-    serializer_name = jwt_settings.api_settings.TOKEN_OBTAIN_SERIALIZER
-    token_serializer = import_string(serializer_name)
-    return token_serializer.token_class

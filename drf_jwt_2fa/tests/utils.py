@@ -82,7 +82,7 @@ def check_token_basics_and_get_payload(token):
     return decode_jwt_part(payload_part)
 
 
-def get_verification_code_from_mailbox():
+def get_verification_code_from_mailbox() -> str:
     return mail.outbox[-1].subject.split(":")[0]
 
 

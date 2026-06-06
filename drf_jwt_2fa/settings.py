@@ -116,7 +116,9 @@ class ApiSettings:
     def __getattr__(self, name: str) -> object:
         if name not in type(self).__annotations__:
             raise AttributeError(name)
-        user_settings: dict = getattr(settings, "JWT2FA_AUTH", None) or {}
+        user_settings: dict[str, object] = (
+            getattr(settings, "JWT2FA_AUTH", None) or {}
+        )
         values = {**_get_default_settings(), **user_settings}
         self._resolve_imports(values)
         self._check_setting_types(values)

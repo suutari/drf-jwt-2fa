@@ -1,11 +1,18 @@
+from typing import TYPE_CHECKING
+
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
 
 from .models import UserTwoFactorAuthData
 
+if TYPE_CHECKING:
+    ModelAdmin = admin.ModelAdmin[UserTwoFactorAuthData]
+else:
+    ModelAdmin = admin.ModelAdmin
+
 
 @admin.register(UserTwoFactorAuthData)
-class UserTwoFactorAuthDataAdmin(admin.ModelAdmin):
+class UserTwoFactorAuthDataAdmin(ModelAdmin):
     """
     Admin interface for UserTwoFactorAuthData.
 
@@ -24,5 +31,5 @@ class UserTwoFactorAuthDataAdmin(admin.ModelAdmin):
     )
 
     @admin.display(boolean=True, description=_("TOTP configured"))
-    def has_totp_secret(self, obj):
+    def has_totp_secret(self, obj: UserTwoFactorAuthData) -> bool:
         return bool(obj.encrypted_totp_secret)

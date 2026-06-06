@@ -73,7 +73,7 @@ class UserTwoFactorAuthData(models.Model):
         verbose_name = _("user two-factor authentication data")
         verbose_name_plural = _("user two-factor authentication data")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.user} ({self.preferred_2fa_auth or '2FA unconfigured'})"
 
     @classmethod
