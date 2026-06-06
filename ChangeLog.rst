@@ -1,6 +1,13 @@
 Django Rest Framework JWT 2FA Change Log
 ========================================
 
+2.0.1 (Released 2026-06-06 15:55 +0300)
+---------------------------------------
+
+* Add ``py.typed`` marker file for PEP 561 compliance
+* Complete type annotations on all non-test code
+* Update Django dependency specifier to ``django>3``
+
 2.0.0 (Released 2026-05-17 15:18 +0300)
 ---------------------------------------
 
