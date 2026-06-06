@@ -385,7 +385,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "cryptography", specifier = ">=47.0.0" },
-    { name = "django", specifier = ">2" },
+    { name = "django", specifier = ">3" },
     { name = "djangorestframework", specifier = ">=3.0" },
     { name = "djangorestframework-simplejwt", specifier = ">=5.1" },
     { name = "pyotp", specifier = ">=2.6" },

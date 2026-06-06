@@ -38,7 +38,7 @@ classifiers = [
 requires-python = ">=3.12"
 dependencies = [
     "cryptography>=47.0.0",
-    "django>2",
+    "django>3",
     "djangorestframework>=3.0",
     "djangorestframework-simplejwt>=5.1",
     "pyotp>=2.6",
