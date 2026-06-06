@@ -47,6 +47,9 @@ dependencies = [
 [project.urls]
 homepage = "https://github.com/suutari/drf-jwt-2fa"
 
+[tool.setuptools.package-data]
+"drf_jwt_2fa" = ["py.typed"]
+
 [dependency-groups]
 dev = [
     "django-stubs>=6.0.2",
